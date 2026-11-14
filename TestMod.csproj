@@ -1,0 +1,37 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net472</TargetFramework>
+    <LangVersion>9.0</LangVersion>
+    <RootNamespace>TestMod</RootNamespace>
+    <AssemblyName>TestMod</AssemblyName>
+    <BeatSaberDir Condition="'$(BeatSaberDir)' == ''">$(MSBuildThisFileDirectory)..\1.46.0</BeatSaberDir>
+    <GameManagedDir Condition="'$(GameManagedDir)' == ''">$(BeatSaberDir)\Beat Saber_Data\Managed</GameManagedDir>
+    <GameLibsDir Condition="'$(GameLibsDir)' == ''">$(BeatSaberDir)\Libs</GameLibsDir>
+    <BSIPALoaderPath Condition="'$(BSIPALoaderPath)' == ''">$(BeatSaberDir)\IPA\Data\Managed\IPA.Loader.dll</BSIPALoaderPath>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Reference Include="IPA.Loader">
+      <HintPath>$(BSIPALoaderPath)</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="0Harmony">
+      <HintPath>$(GameLibsDir)\0Harmony.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.CoreModule">
+      <HintPath>$(GameManagedDir)\UnityEngine.CoreModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.UI">
+      <HintPath>$(GameManagedDir)\UnityEngine.UI.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Unity.TextMeshPro">
+      <HintPath>$(GameManagedDir)\Unity.TextMeshPro.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="All" />
+    <EmbeddedResource Include="manifest.json" />
+  </ItemGroup>
+</Project>
