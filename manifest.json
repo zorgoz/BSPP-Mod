@@ -1,14 +1,14 @@
 {
   "author": "Local",
-  "description": "Minimal logger-only BSIPA proof-of-concept for Beat Saber 1.46.0.",
+  "description": "Adds Players access backed by a mod-owned profile database.",
   "gameVersion": "1.46.0",
-  "id": "TestMod",
-  "name": "TestMod",
+  "id": "ProfilesMod",
+  "name": "Profiles",
   "version": "0.1.0",
   "dependsOn": {
     "BSIPA": "^4.3.7"
   },
   "misc": {
-    "plugin-hint": "TestMod.Plugin"
+    "plugin-hint": "ProfilesMod.Plugin"
   }
 }

@@ -8,7 +8,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using IPALogger = IPA.Logging.Logger;
 
-namespace TestMod
+namespace ProfilesMod
 {
     [Plugin(RuntimeOptions.SingleStartInit)]
     internal class Plugin
@@ -21,29 +21,40 @@ namespace TestMod
         public Plugin(IPALogger logger)
         {
             Log = logger;
-            _harmony = new Harmony("TestMod");
+            try
+            {
+                ProfileDatabase.Initialize();
+                Log.Info("Profiles database is ready.");
+            }
+            catch (Exception exception)
+            {
+                Log.Error("Profiles database initialization failed. The Players button will be disabled.");
+                Log.Error(exception.ToString());
+            }
+
+            _harmony = new Harmony("ProfilesMod");
             _harmony.PatchAll(typeof(Plugin).Assembly);
-            Log.Info("TestMod initialized.");
+            Log.Info("Profiles initialized.");
         }
 
         [OnStart]
         public void OnStart()
         {
-            Log.Info("TestMod started.");
+            Log.Info("Profiles started.");
         }
 
         [OnExit]
         public void OnExit()
         {
             _harmony.UnpatchSelf();
-            Log.Info("TestMod shutting down.");
+            Log.Info("Profiles shutting down.");
         }
     }
 
     [HarmonyPatch]
     internal static class MainMenuButtonPatch
     {
-        private const string ButtonObjectName = "TestMod.PlayersButton";
+        private const string ButtonObjectName = "ProfilesMod.PlayersButton";
         private static Sprite _playersButtonSprite;
         private static Sprite _playersHighlightSprite;
         private static Sprite _playersOverlaySprite;
@@ -94,14 +105,23 @@ namespace TestMod
                 throw new MissingComponentException("The cloned main menu object has no Button component.");
 
             button.onClick = new Button.ButtonClickedEvent();
-            button.onClick.AddListener(() => Plugin.Log.Info("Players button clicked."));
+            button.interactable = ProfileDatabase.IsAvailable;
+            button.onClick.AddListener(() =>
+            {
+                if (!ProfileDatabase.IsAvailable)
+                    return;
+
+                Plugin.Log.Info("Players button clicked.");
+            });
             var colors = button.colors;
             colors.normalColor = Color.white;
             colors.highlightedColor = Color.white;
             colors.pressedColor = Color.white;
             colors.selectedColor = Color.white;
-            colors.disabledColor = Color.white;
+            colors.disabledColor = new Color(0.55f, 0.55f, 0.55f, 1f);
             button.colors = colors;
+            if (!ProfileDatabase.IsAvailable)
+                SetDatabaseUnavailableHint(buttonObject);
 
             ApplyButtonSprites(buttonObject);
 
@@ -129,7 +149,9 @@ namespace TestMod
                 newRect.anchoredPosition = partyRect.anchoredPosition + step;
             }
 
-            Plugin.Log.Info("Added the Players button to the main menu.");
+            Plugin.Log.Info(ProfileDatabase.IsAvailable
+                ? "Added the Players button to the main menu."
+                : "Added the Players button in a disabled state because the profiles database is unavailable.");
         }
 
         private static void LoadButtonSprites()
@@ -137,9 +159,9 @@ namespace TestMod
             if (_playersButtonSprite != null)
                 return;
 
-            var buttonSprite = LoadSprite("TestMod.Resources.PlayersButton.png");
-            var highlightSprite = LoadSprite("TestMod.Resources.PlayersHighlightButton.png");
-            var overlaySprite = LoadSprite("TestMod.Resources.PlayersButtonOverlay.png");
+            var buttonSprite = LoadSprite("ProfilesMod.Resources.PlayersButton.png");
+            var highlightSprite = LoadSprite("ProfilesMod.Resources.PlayersHighlightButton.png");
+            var overlaySprite = LoadSprite("ProfilesMod.Resources.PlayersButtonOverlay.png");
 
             _playersButtonSprite = buttonSprite;
             _playersHighlightSprite = highlightSprite;
@@ -256,6 +278,35 @@ namespace TestMod
         {
             DisableLocalizedComponents(buttonObject, "BGLib.Polyglot.LocalizedTextMeshProUGUI");
             DisableLocalizedComponents(buttonObject, "BGLib.Polyglot.LocalizedTextMeshPro");
+        }
+
+        private static void SetDatabaseUnavailableHint(GameObject buttonObject)
+        {
+            var hoverHintType = AccessTools.TypeByName("HMUI.HoverHint");
+            if (hoverHintType == null)
+                return;
+
+            var hoverHint = buttonObject.GetComponent(hoverHintType);
+            if (hoverHint == null)
+                hoverHint = buttonObject.AddComponent(hoverHintType);
+
+            const string hint = "Players is unavailable because the profiles database could not be opened for writing.";
+            var textProperty = hoverHintType.GetProperty("text",
+                BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+            if (textProperty != null && textProperty.CanWrite && textProperty.PropertyType == typeof(string))
+            {
+                textProperty.SetValue(hoverHint, hint, null);
+                return;
+            }
+
+            var textField = AccessTools.Field(hoverHintType, "_text") ?? AccessTools.Field(hoverHintType, "text");
+            if (textField != null && textField.FieldType == typeof(string))
+            {
+                textField.SetValue(hoverHint, hint);
+                return;
+            }
+
+            Plugin.Log.Warn("HMUI.HoverHint is present but exposes no supported text member; database failure is logged.");
         }
 
         private static void DisableLocalizedComponents(GameObject buttonObject, string typeName)

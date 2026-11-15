@@ -90,7 +90,7 @@ if ($existingMarkers.Count -gt 0) {
         Write-Host "Upgrading BSIPA $installedVersion to $bsipaVersion."
         $shouldInstallBsipa = $true
     } elseif ($installedVersion -ge $maximumBsipaVersion) {
-        throw "The installed BSIPA version is $installedVersion. TestMod requires 4.3.7 or newer within the compatible 4.x range; no files were changed."
+        throw "The installed BSIPA version is $installedVersion. Profiles requires 4.3.7 or newer within the compatible 4.x range; no files were changed."
     } else {
         Write-Host "Compatible BSIPA $installedVersion is already installed."
     }
@@ -155,7 +155,7 @@ if (-not $LoaderOnly) {
         throw 'The .NET SDK was not found. Install the SDK or rerun with -LoaderOnly.'
     }
 
-    $projectPath = Join-Path $PSScriptRoot 'TestMod.csproj'
+    $projectPath = Join-Path $PSScriptRoot 'ProfilesMod.csproj'
     $buildArguments = @(
         'build',
         $projectPath,
@@ -165,18 +165,31 @@ if (-not $LoaderOnly) {
     )
     & $dotnet.Source @buildArguments
     if ($LASTEXITCODE -ne 0) {
-        throw "TestMod build failed with exit code $LASTEXITCODE."
+        throw "Profiles build failed with exit code $LASTEXITCODE."
     }
 
-    $pluginPath = Join-Path $PSScriptRoot 'bin\Release\net472\TestMod.dll'
+    $outputDirectory = Join-Path $PSScriptRoot 'bin\Release\net472'
+    $pluginPath = Join-Path $outputDirectory 'ProfilesMod.dll'
     if (-not (Test-Path -LiteralPath $pluginPath -PathType Leaf)) {
         throw "Build succeeded but the plugin DLL was not found at '$pluginPath'."
     }
 
+    $sqliteAssemblyPath = Join-Path $outputDirectory 'System.Data.SQLite.dll'
+    $sqliteNativePath = Join-Path $outputDirectory 'x64\SQLite.Interop.dll'
+    foreach ($dependencyPath in @($sqliteAssemblyPath, $sqliteNativePath)) {
+        if (-not (Test-Path -LiteralPath $dependencyPath -PathType Leaf)) {
+            throw "Build succeeded but a required SQLite dependency was not found at '$dependencyPath'."
+        }
+    }
+
     $pluginsDirectory = Join-Path $gamePath 'Plugins'
     New-Item -ItemType Directory -Path $pluginsDirectory -Force | Out-Null
-    Copy-Item -LiteralPath $pluginPath -Destination (Join-Path $pluginsDirectory 'TestMod.dll') -Force
-    Write-Host "Built and copied TestMod.dll to '$pluginsDirectory'."
+    Copy-Item -LiteralPath $pluginPath -Destination (Join-Path $pluginsDirectory 'ProfilesMod.dll') -Force
+    Copy-Item -LiteralPath $sqliteAssemblyPath -Destination (Join-Path $pluginsDirectory 'System.Data.SQLite.dll') -Force
+    $sqliteNativeDirectory = Join-Path $pluginsDirectory 'x64'
+    New-Item -ItemType Directory -Path $sqliteNativeDirectory -Force | Out-Null
+    Copy-Item -LiteralPath $sqliteNativePath -Destination (Join-Path $sqliteNativeDirectory 'SQLite.Interop.dll') -Force
+    Write-Host "Built and copied ProfilesMod.dll and its SQLite dependencies to '$pluginsDirectory'."
 }
 
 Write-Host 'Initialization complete. Beat Saber was not started; launch it when ready.'

@@ -2,8 +2,11 @@
   <PropertyGroup>
     <TargetFramework>net472</TargetFramework>
     <LangVersion>9.0</LangVersion>
-    <RootNamespace>TestMod</RootNamespace>
-    <AssemblyName>TestMod</AssemblyName>
+    <RootNamespace>ProfilesMod</RootNamespace>
+    <AssemblyName>ProfilesMod</AssemblyName>
+    <PlatformTarget>x64</PlatformTarget>
+    <Platforms>x64</Platforms>
+    <Prefer32Bit>false</Prefer32Bit>
     <BeatSaberDir Condition="'$(BeatSaberDir)' == ''">$(MSBuildThisFileDirectory)..\1.46.0</BeatSaberDir>
     <GameManagedDir Condition="'$(GameManagedDir)' == ''">$(BeatSaberDir)\Beat Saber_Data\Managed</GameManagedDir>
     <GameLibsDir Condition="'$(GameLibsDir)' == ''">$(BeatSaberDir)\Libs</GameLibsDir>
@@ -32,9 +35,10 @@
       <Private>false</Private>
     </Reference>
     <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="All" />
+    <PackageReference Include="System.Data.SQLite.Core" Version="1.0.119" />
     <EmbeddedResource Include="manifest.json" />
-    <EmbeddedResource Include="Resources\PlayersButton.png" LogicalName="TestMod.Resources.PlayersButton.png" />
-    <EmbeddedResource Include="Resources\PlayersHighlightButton.png" LogicalName="TestMod.Resources.PlayersHighlightButton.png" />
-    <EmbeddedResource Include="Resources\PlayersButtonOverlay.png" LogicalName="TestMod.Resources.PlayersButtonOverlay.png" />
+    <EmbeddedResource Include="Resources\PlayersButton.png" LogicalName="ProfilesMod.Resources.PlayersButton.png" />
+    <EmbeddedResource Include="Resources\PlayersHighlightButton.png" LogicalName="ProfilesMod.Resources.PlayersHighlightButton.png" />
+    <EmbeddedResource Include="Resources\PlayersButtonOverlay.png" LogicalName="ProfilesMod.Resources.PlayersButtonOverlay.png" />
   </ItemGroup>
 </Project>
