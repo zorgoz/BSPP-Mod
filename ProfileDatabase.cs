@@ -45,6 +45,8 @@ namespace ProfilesMod
             "CREATE INDEX IF NOT EXISTS IX_runs_player_when ON runs (player_id, \"when\")"
         };
 
+        private static string _databasePath;
+
         internal static bool IsAvailable { get; private set; }
         internal static string InitializationFailure { get; private set; }
 
@@ -60,27 +62,16 @@ namespace ProfilesMod
                 if (gameDirectory == null)
                     throw new InvalidOperationException("Could not determine the Beat Saber instance directory.");
 
-                var databasePath = Path.Combine(gameDirectory.FullName, "ProfilesMod.sqlite3");
-                var connectionString = new SQLiteConnectionStringBuilder
+                _databasePath = Path.Combine(gameDirectory.FullName, "ProfilesMod.sqlite3");
+                using (var connection = OpenConnection())
                 {
-                    DataSource = databasePath,
-                    Version = 3
-                }.ToString();
-
-                using (var connection = new SQLiteConnection(connectionString))
-                {
-                    connection.Open();
-                    if (connection.State != ConnectionState.Open)
-                        throw new InvalidOperationException("SQLite did not open the profiles database.");
-
-                    ExecuteStatement(connection, "PRAGMA foreign_keys = ON");
                     foreach (var statement in SchemaStatements)
                         ExecuteStatement(connection, statement);
 
                     VerifyWritable(connection);
                 }
 
-                if (!File.Exists(databasePath) || new FileInfo(databasePath).Length == 0)
+                if (!File.Exists(_databasePath) || new FileInfo(_databasePath).Length == 0)
                     throw new IOException("SQLite did not create a non-empty profiles database file.");
 
                 IsAvailable = true;
@@ -89,6 +80,101 @@ namespace ProfilesMod
             {
                 InitializationFailure = exception.Message;
                 throw;
+            }
+        }
+
+        internal static PlayerProfile[] GetPlayers()
+        {
+            EnsureAvailable();
+            using (var connection = OpenConnection())
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText =
+                    "SELECT p.id, p.name, p.selected, EXISTS (" +
+                    "SELECT 1 FROM runs r WHERE r.player_id = p.id) " +
+                    "FROM players p ORDER BY p.name COLLATE NOCASE, p.id";
+
+                using (var reader = command.ExecuteReader())
+                {
+                    var players = new System.Collections.Generic.List<PlayerProfile>();
+                    while (reader.Read())
+                    {
+                        players.Add(new PlayerProfile(
+                            reader.GetString(0),
+                            reader.GetString(1),
+                            reader.GetBoolean(2),
+                            reader.GetBoolean(3)));
+                    }
+
+                    return players.ToArray();
+                }
+            }
+        }
+
+        internal static PlayerProfile CreatePlayer(string name)
+        {
+            EnsureAvailable();
+            var normalizedName = (name ?? string.Empty).Trim();
+            if (normalizedName.Length == 0)
+                throw new ArgumentException("Enter a player name.", nameof(name));
+
+            var player = new PlayerProfile(NewId(), normalizedName, false, false);
+            using (var connection = OpenConnection())
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = "INSERT INTO players (id, name) VALUES (@id, @name)";
+                command.Parameters.AddWithValue("@id", player.Id);
+                command.Parameters.AddWithValue("@name", player.Name);
+                command.ExecuteNonQuery();
+            }
+
+            return player;
+        }
+
+        internal static void DeletePlayer(string playerId)
+        {
+            EnsureAvailable();
+            using (var connection = OpenConnection())
+            using (var transaction = connection.BeginTransaction())
+            using (var command = connection.CreateCommand())
+            {
+                command.Transaction = transaction;
+                command.CommandText = "SELECT EXISTS (SELECT 1 FROM players WHERE id = @id)";
+                command.Parameters.AddWithValue("@id", playerId);
+                if (Convert.ToInt32(command.ExecuteScalar(), CultureInfo.InvariantCulture) == 0)
+                    throw new InvalidOperationException("The selected player no longer exists.");
+
+                command.CommandText =
+                    "SELECT EXISTS (SELECT 1 FROM runs WHERE player_id = @id)";
+                if (Convert.ToInt32(command.ExecuteScalar(), CultureInfo.InvariantCulture) != 0)
+                    throw new InvalidOperationException("A player with recorded runs cannot be deleted.");
+
+                command.CommandText = "DELETE FROM players WHERE id = @id";
+                command.ExecuteNonQuery();
+                command.CommandText = "UPDATE players SET selected = 0";
+                command.Parameters.Clear();
+                command.ExecuteNonQuery();
+                transaction.Commit();
+            }
+        }
+
+        internal static void SelectPlayer(string playerId)
+        {
+            EnsureAvailable();
+            using (var connection = OpenConnection())
+            using (var transaction = connection.BeginTransaction())
+            using (var command = connection.CreateCommand())
+            {
+                command.Transaction = transaction;
+                command.CommandText = "UPDATE players SET selected = 0";
+                command.ExecuteNonQuery();
+
+                command.CommandText = "UPDATE players SET selected = 1 WHERE id = @id";
+                command.Parameters.AddWithValue("@id", playerId);
+                if (command.ExecuteNonQuery() != 1)
+                    throw new InvalidOperationException("The selected player no longer exists.");
+
+                transaction.Commit();
             }
         }
 
@@ -123,6 +209,39 @@ namespace ProfilesMod
             }
         }
 
+        private static SQLiteConnection OpenConnection()
+        {
+            if (string.IsNullOrEmpty(_databasePath))
+                throw new InvalidOperationException("The profiles database has not been initialized.");
+
+            var connectionString = new SQLiteConnectionStringBuilder
+            {
+                DataSource = _databasePath,
+                Version = 3
+            }.ToString();
+            var connection = new SQLiteConnection(connectionString);
+            try
+            {
+                connection.Open();
+                if (connection.State != ConnectionState.Open)
+                    throw new InvalidOperationException("SQLite did not open the profiles database.");
+
+                ExecuteStatement(connection, "PRAGMA foreign_keys = ON");
+                return connection;
+            }
+            catch
+            {
+                connection.Dispose();
+                throw;
+            }
+        }
+
+        private static void EnsureAvailable()
+        {
+            if (!IsAvailable)
+                throw new InvalidOperationException("The profiles database is unavailable.");
+        }
+
         private static void VerifyWritable(SQLiteConnection connection)
         {
             using (var transaction = connection.BeginTransaction())
@@ -140,5 +259,21 @@ namespace ProfilesMod
                 transaction.Commit();
             }
         }
+    }
+
+    internal sealed class PlayerProfile
+    {
+        internal PlayerProfile(string id, string name, bool isSelected, bool hasRuns)
+        {
+            Id = id;
+            Name = name;
+            IsSelected = isSelected;
+            HasRuns = hasRuns;
+        }
+
+        internal string Id { get; }
+        internal string Name { get; }
+        internal bool IsSelected { get; }
+        internal bool HasRuns { get; }
     }
 }
