@@ -121,7 +121,7 @@ namespace ProfilesMod
             colors.disabledColor = new Color(0.55f, 0.55f, 0.55f, 1f);
             button.colors = colors;
             if (!ProfileDatabase.IsAvailable)
-                SetDatabaseUnavailableHint(buttonObject);
+                SetDatabaseUnavailableHint(buttonObject, ProfileDatabase.InitializationFailure);
 
             ApplyButtonSprites(buttonObject);
 
@@ -280,7 +280,7 @@ namespace ProfilesMod
             DisableLocalizedComponents(buttonObject, "BGLib.Polyglot.LocalizedTextMeshPro");
         }
 
-        private static void SetDatabaseUnavailableHint(GameObject buttonObject)
+        private static void SetDatabaseUnavailableHint(GameObject buttonObject, string failureReason)
         {
             var hoverHintType = AccessTools.TypeByName("HMUI.HoverHint");
             if (hoverHintType == null)
@@ -290,7 +290,9 @@ namespace ProfilesMod
             if (hoverHint == null)
                 hoverHint = buttonObject.AddComponent(hoverHintType);
 
-            const string hint = "Players is unavailable because the profiles database could not be opened for writing.";
+            var hint = "Players is unavailable because the profiles database could not be opened for writing.";
+            if (!string.IsNullOrEmpty(failureReason))
+                hint += " " + failureReason;
             var textProperty = hoverHintType.GetProperty("text",
                 BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
             if (textProperty != null && textProperty.CanWrite && textProperty.PropertyType == typeof(string))

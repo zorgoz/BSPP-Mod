@@ -1,6 +1,12 @@
 # Profiles
 
-Profiles is a BSIPA plugin for Beat Saber 1.46.0. It adds a `Players` button to the main menu and creates a mod-owned SQLite database, `ProfilesMod.sqlite3`, in the Beat Saber instance directory. The database is initialized for writing before the plugin activates; if it cannot be opened and its profile table created, the Players button is disabled and the failure is written to the BSIPA log. When the game exposes `HMUI.HoverHint`, the disabled button also explains the database issue on hover.
+Profiles is a BSIPA plugin for Beat Saber 1.46.0. It adds a `Players` button to the main menu and creates a mod-owned SQLite database, `ProfilesMod.sqlite3`, alongside the Beat Saber game instance. Initialization creates the schema and performs a write probe before making the database available; if that fails, the Players button is disabled, the cause is written to the BSIPA log, and (when the game exposes `HMUI.HoverHint`) the cause appears on hover.
+
+## Database schema
+
+The database contains `players`, `playlists`, `playlist_songs`, and `runs` tables. Generated row IDs use canonical UUIDv7 strings; `ProfileDatabase.NewId()` supplies them on .NET Framework 4.7.2, which does not provide a built-in UUIDv7 generator. `song_id` stores the globally unique Beat Saber song key. `playlist_songs` uses `(playlist_id, song_id)` as its composite key. Runs have a UUIDv7 `id` in addition to the requested fields so each run has a globally unique row identity.
+
+`created` and `when` are stored as ISO 8601 text with an explicit UTC offset, suitable for round-tripping `DateTimeOffset` values (for example, `2026-11-15T21:32:04.5510000+00:00`). `modifiers` is JSON text and defaults to `{}`; `cleared` and `selected` are integer booleans. Foreign keys cascade when a player or playlist is deleted, and partial unique indexes allow at most one selected player and one selected playlist per player.
 
 The three PNGs in `Resources` are embedded in `ProfilesMod.dll` and used at runtime for the button's normal, highlighted/pressed, and overlay artwork. The sprites preserve their aspect ratio; the cloned menu button's overall size and layout are unchanged.
 
