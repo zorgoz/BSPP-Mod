@@ -1,6 +1,8 @@
 # TestMod
 
-A minimal BSIPA plugin for Beat Saber 1.46.0. It adds a `Multiuser` button to the main menu and logs when it is clicked; it does not implement a game mode or change the logged-in identity.
+A minimal BSIPA plugin for Beat Saber 1.46.0. It adds a `Players` button to the main menu and logs when it is clicked; it does not implement a game mode or change the logged-in identity.
+
+The three PNGs in `Resources` are embedded in `TestMod.dll` and used at runtime for the button's normal, highlighted/pressed, and overlay artwork. The sprites preserve their aspect ratio; the cloned menu button's overall size and layout are unchanged.
 
 ## Requirements
 
@@ -35,7 +37,7 @@ TestMod declares a dependency on BSIPA `^4.3.7`. The target installation must ha
 
    If PowerShell blocks the script, allow scripts only in the current PowerShell process with `Set-ExecutionPolicy -Scope Process Bypass`.
 4. Confirm the installer reports BSIPA 4.3.7 or a newer compatible 4.x version. The plugin DLL should be at `Plugins\TestMod.dll`.
-5. Start the game when ready. The script intentionally does not launch it. On a successful run, the BSIPA log should show TestMod initialization and the main-menu button; clicking it adds a click log entry.
+5. Start the game when ready. The script intentionally does not launch it. On a successful run, the BSIPA log should show TestMod initialization and the Players main-menu button; clicking it adds a click log entry.
 
 The script preserves other files in the instance, installing BSIPA when absent and upgrading older versions to 4.3.7; it leaves a compatible newer 4.x version in place. It replaces only `Plugins\TestMod.dll` during deployment. If it detects an incomplete installation or an incompatible major version, it stops rather than replacing it silently; review that loader before retrying.
 

@@ -33,5 +33,8 @@
     </Reference>
     <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="All" />
     <EmbeddedResource Include="manifest.json" />
+    <EmbeddedResource Include="Resources\PlayersButton.png" LogicalName="TestMod.Resources.PlayersButton.png" />
+    <EmbeddedResource Include="Resources\PlayersHighlightButton.png" LogicalName="TestMod.Resources.PlayersHighlightButton.png" />
+    <EmbeddedResource Include="Resources\PlayersButtonOverlay.png" LogicalName="TestMod.Resources.PlayersButtonOverlay.png" />
   </ItemGroup>
 </Project>
