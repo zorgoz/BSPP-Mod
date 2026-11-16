@@ -39,80 +39,16 @@ namespace ProfilesMod
 
         protected override void DidActivate(bool firstActivation, bool addedToHierarchy, bool screenSystemEnabling)
         {
-            Plugin.Log.Info("Profile view activated: first=" + firstActivation +
-                ", added=" + addedToHierarchy + ", screenEnabling=" + screenSystemEnabling);
             ConfigureCanvasForScreen();
             if (firstActivation)
                 BuildView();
 
             Refresh(restoreSelection: addedToHierarchy);
-            Plugin.Log.Info("Profile view content built and refreshed.");
-            StartCoroutine(LogScreenDiagnostics());
         }
 
         protected override void DidDeactivate(bool removedFromHierarchy, bool screenSystemDisabling)
         {
             _flow.CloseKeyboardFor(_nameInput, _keyboardManager);
-        }
-
-        private IEnumerator LogScreenDiagnostics()
-        {
-            yield return new WaitForSecondsRealtime(0.7f);
-            if (!isActivated || screen == null)
-                yield break;
-
-            var canvas = GetComponent<Canvas>();
-            var screenRect = screen.transform as RectTransform;
-            var nativeView = parentViewController;
-            Plugin.Log.Info("Profile screen diagnostics: active=" + gameObject.activeInHierarchy +
-                ", screen=" + screen.name + ", screenRect=" + (screenRect == null ? "missing" : screenRect.rect.ToString()) +
-                ", viewRect=" + rectTransform.rect + ", viewScale=" + transform.lossyScale +
-                ", viewPosition=" + transform.position + ", alpha=" + canvasGroup.alpha +
-                ", parent=" + (transform.parent == null ? "missing" : transform.parent.name) +
-                ", nativeView=" + (nativeView == null ? "missing" : nativeView.name) +
-                ", nativeRect=" + (nativeView == null ? "missing" : nativeView.rectTransform.rect.ToString()));
-            Plugin.Log.Info("Profile canvas diagnostics: active=" + canvas.isActiveAndEnabled +
-                ", mode=" + canvas.renderMode + ", root=" + canvas.rootCanvas.name +
-                ", sorting=" + canvas.sortingLayerID + "/" + canvas.sortingOrder +
-                ", raycaster=" + GetComponent<UnityEngine.EventSystems.BaseRaycaster>().GetType().Name +
-                ", nativeTextEntryCandidates=" + Resources.FindObjectsOfTypeAll<EnterTextViewController>().Length +
-                ", nativeDialogCandidates=" + Resources.FindObjectsOfTypeAll<SimpleDialogPromptViewController>().Length +
-                ", nativeInputCandidates=" + Resources.FindObjectsOfTypeAll<InputFieldView>().Length +
-                ", keyboardManagers=" + Resources.FindObjectsOfTypeAll<UIKeyboardManager>().Length);
-            LogGraphicDiagnostics("Caption", _caption == null ? null : _caption.transform);
-            LogGraphicDiagnostics("NameEntry", _nameInput != null ? _nameInput.transform :
-                (_nameEntryButton == null ? null : _nameEntryButton.transform));
-            LogGraphicDiagnostics("AddButton", _addButton == null ? null : _addButton.transform);
-            var nativeText = nativeView == null ? null : nativeView.GetComponentInChildren<TMP_Text>(true);
-            LogGraphicDiagnostics("NativeMenuText", nativeText == null ? null : nativeText.transform);
-        }
-
-        private static void LogGraphicDiagnostics(string label, Transform target)
-        {
-            if (target == null)
-            {
-                Plugin.Log.Info("Profile graphic diagnostics: " + label + " missing");
-                return;
-            }
-
-            var rect = target as RectTransform;
-            var graphic = target.GetComponent<Graphic>();
-            var image = graphic as Image;
-            var text = graphic as TMP_Text;
-            var material = graphic == null ? null : graphic.materialForRendering;
-            Plugin.Log.Info("Profile graphic diagnostics: " + label +
-                ", active=" + target.gameObject.activeInHierarchy +
-                ", rect=" + (rect == null ? "missing" : rect.rect.ToString()) +
-                ", position=" + target.position + ", scale=" + target.lossyScale +
-                ", depth=" + (graphic == null ? -1 : graphic.depth) +
-                ", culled=" + (graphic == null || graphic.canvasRenderer.cull) +
-                ", color=" + (graphic == null ? "missing" : graphic.color.ToString()) +
-                ", rendererColor=" + (graphic == null ? "missing" : graphic.canvasRenderer.GetColor().ToString()) +
-                ", material=" + (material == null ? "missing" : material.name) +
-                ", shader=" + (material == null || material.shader == null ? "missing" : material.shader.name) +
-                ", sprite=" + (image == null || image.sprite == null ? "none" : image.sprite.name) +
-                ", font=" + (text == null || text.font == null ? "none" : text.font.name) +
-                ", fontSize=" + (text == null ? 0f : text.fontSize));
         }
 
         internal void SetPendingName(string name)
@@ -336,41 +272,6 @@ namespace ProfilesMod
                 _nameEntryButton.interactable = nameEntryAvailable;
             SetMessage(nameEntryAvailable ? string.Empty : "Player name entry unavailable: native keyboard not loaded.");
             _scrollRect.verticalNormalizedPosition = 1f;
-            if (players.Length != 0)
-                StartCoroutine(LogListDiagnostics());
-        }
-
-        private IEnumerator LogListDiagnostics()
-        {
-            yield return new WaitForEndOfFrame();
-            if (!isActivated || _rows.Count == 0 || _rows[0] == null)
-                yield break;
-
-            var row = _rows[0];
-            var text = row.GetComponentInChildren<TMP_Text>(true);
-            if (text == null)
-            {
-                Plugin.Log.Error("Profile list diagnostics: first row has no text.");
-                yield break;
-            }
-
-            text.ForceMeshUpdate();
-            var visibleCharacters = 0;
-            for (var index = 0; index < text.textInfo.characterCount; index++)
-            {
-                if (text.textInfo.characterInfo[index].isVisible)
-                    visibleCharacters++;
-            }
-
-            Plugin.Log.Info("Profile list diagnostics: rows=" + _rows.Count +
-                ", listActive=" + _listObject.activeInHierarchy +
-                ", viewport=" + ((RectTransform)_listObject.transform).rect +
-                ", content=" + _listContainer.rect + ", contentPosition=" + _listContainer.anchoredPosition +
-                ", rowPosition=" + ((RectTransform)row.transform).anchoredPosition +
-                ", textRect=" + text.rectTransform.rect + ", fontSize=" + text.fontSize +
-                ", preferredHeight=" + text.preferredHeight + ", truncated=" + text.isTextTruncated +
-                ", visibleCharacters=" + visibleCharacters);
-            LogGraphicDiagnostics("FirstPlayer", text.transform);
         }
 
         private void AddPlayerRow(PlayerProfile player, int index)
@@ -555,13 +456,6 @@ namespace ProfilesMod
 
         public void OnPointerDown(PointerEventData eventData)
         {
-            var hit = eventData.pointerCurrentRaycast.gameObject;
-            var managerModule = ProfileFlowCoordinator.ReadDependency<object>(
-                _manager, typeof(UIKeyboardManager), "_vrInputModule");
-            var activeModule = EventSystem.current == null ? null : EventSystem.current.currentInputModule;
-            Plugin.Log.Info("Profile input pointer: hit=" + (hit == null ? "missing" : hit.name) +
-                ", inputRoot=" + (hit == _input.gameObject) +
-                ", managerUsesActiveModule=" + ReferenceEquals(managerModule, activeModule));
             StartCoroutine(PositionKeyboard());
         }
 
@@ -570,7 +464,6 @@ namespace ProfilesMod
             yield return null;
             var selected = ProfileFlowCoordinator.ReadDependency<InputFieldView>(
                 _manager, typeof(UIKeyboardManager), "_selectedInput");
-            Plugin.Log.Info("Profile keyboard selection: selectedInput=" + (selected == _input));
             if (selected != _input)
                 yield break;
 
@@ -617,42 +510,6 @@ namespace ProfilesMod
                 ? screenRect.rect.center.y - height / 2f
                 : Mathf.Clamp(inputTop + margin, minBottom, maxBottom);
             container.position += screenRect.TransformVector(new Vector3(0f, targetBottom - bottom, 0f));
-            Plugin.Log.Info("Profile keyboard placement: screenBottom=" + targetBottom +
-                ", screenTop=" + (targetBottom + height) + ", inputTop=" + inputTop +
-                ", worldPosition=" + container.position);
-
-            var modal = ProfileFlowCoordinator.ReadDependency<ModalViewBase>(
-                _manager, typeof(UIKeyboardManager), "_keyboardModalView");
-            var parent = ProfileFlowCoordinator.ReadDependency<Transform>(
-                _manager, typeof(UIKeyboardManager), "_parentContainerTransform");
-            var nativeModal = modal as ModalView;
-            Plugin.Log.Info("Profile keyboard diagnostics: modal=" + (modal == null ? "missing" : modal.name) +
-                ", shown=" + (nativeModal != null && nativeModal.isShown) +
-                ", modalActive=" + (modal != null && modal.gameObject.activeInHierarchy) +
-                ", keyboardActive=" + (_manager.keyboard != null && _manager.keyboard.gameObject.activeInHierarchy) +
-                ", containerRect=" + (container == null ? "missing" : container.rect.ToString()) +
-                ", containerWorld=" + (container == null ? "missing" : container.position.ToString()) +
-                ", inputWorld=" + _input.transform.position +
-                ", parentWorld=" + (parent == null ? "missing" : parent.position.ToString()));
-            LogHierarchy("modal", modal == null ? null : modal.transform);
-            LogHierarchy("keyboard", _manager.keyboard == null ? null : _manager.keyboard.transform);
-            LogHierarchy("container", container);
-            LogHierarchy("parent", parent);
-        }
-
-        private static void LogHierarchy(string label, Transform target)
-        {
-            var result = string.Empty;
-            for (var current = target; current != null; current = current.parent)
-            {
-                var canvas = current.GetComponent<Canvas>();
-                result += (result.Length == 0 ? "" : " <- ") + current.name +
-                    "[self=" + current.gameObject.activeSelf + ",active=" + current.gameObject.activeInHierarchy +
-                    (canvas == null ? "" : ",canvas=" + canvas.enabled + "/" + canvas.sortingOrder) + "]";
-            }
-
-            Plugin.Log.Info("Profile keyboard hierarchy " + label + ": " +
-                (result.Length == 0 ? "missing" : result));
         }
     }
 }

@@ -47,8 +47,6 @@ namespace ProfilesMod
 
         protected override void DidActivate(bool firstActivation, bool addedToHierarchy, bool screenSystemEnabling)
         {
-            Plugin.Log.Info("Profile flow activated: first=" + firstActivation +
-                ", added=" + addedToHierarchy + ", screenEnabling=" + screenSystemEnabling);
             showBackButton = true;
             SetTitle("Players");
 
@@ -59,47 +57,6 @@ namespace ProfilesMod
                 ProvideInitialViewControllers(_playerSelectionViewController);
         }
 
-        protected override void InitialViewControllerWasPresented()
-        {
-            Plugin.Log.Info("Profile flow initial view presentation completed.");
-            LogNativeTextEntryBindings();
-        }
-
-        private void LogNativeTextEntryBindings()
-        {
-            Plugin.Log.Info("Native text-entry bindings: search=" +
-                _sceneContainer.HasBinding<LevelSearchViewController>() +
-                ", guestName=" + _sceneContainer.HasBinding<EnterPlayerGuestNameViewController>() +
-                ", keyboardManager=" + _sceneContainer.HasBinding<UIKeyboardManager>());
-
-            var solo = ReadDependency<SoloFreePlayFlowCoordinator>(
-                _mainFlowCoordinator, typeof(MainFlowCoordinator), "_soloFreePlayFlowCoordinator");
-            var search = ReadDependency<LevelSearchViewController>(
-                solo, typeof(LevelSelectionFlowCoordinator), "_levelSearchViewController");
-            var searchInput = ReadDependency<InputFieldView>(
-                search, typeof(LevelSearchViewController), "_searchTextInputFieldView");
-            var keyboardManager = ReadDependency<UIKeyboardManager>(
-                search, typeof(LevelSearchViewController), "_uiKeyboardManager");
-            var party = ReadDependency<PartyFreePlayFlowCoordinator>(
-                _mainFlowCoordinator, typeof(MainFlowCoordinator), "_partyFreePlayFlowCoordinator");
-            var guest = ReadDependency<EnterPlayerGuestNameViewController>(
-                party, typeof(PartyFreePlayFlowCoordinator), "_enterNameViewController");
-            var guestInput = ReadDependency<InputFieldView>(
-                guest, typeof(EnterPlayerGuestNameViewController), "_nameInputFieldView");
-            var guestKeyboard = ReadDependency<HMUI.UIKeyboard>(
-                guest, typeof(EnterPlayerGuestNameViewController), "_uiKeyboard");
-            Plugin.Log.Info("Native text-entry dependencies: solo=" + (solo != null) +
-                ", search=" + (search != null) + ", searchInput=" + (searchInput != null) +
-                ", searchGlobalKeyboard=" + (searchInput != null && searchInput.useGlobalKeyboard) +
-                ", searchInputInView=" + (search != null && IsInHierarchy(search.transform, searchInput)) +
-                ", keyboardManagerActive=" + (keyboardManager != null && keyboardManager.isActiveAndEnabled) +
-                ", managerKeyboard=" + (keyboardManager != null && keyboardManager.keyboard != null) +
-                ", party=" + (party != null) + ", guest=" + (guest != null) +
-                ", guestInput=" + (guestInput != null) +
-                ", guestInputInView=" + (guest != null && IsInHierarchy(guest.transform, guestInput)) +
-                ", guestKeyboardInView=" + (guest != null && IsInHierarchy(guest.transform, guestKeyboard)));
-        }
-
         internal static T ReadDependency<T>(object instance, Type owner, string fieldName) where T : class
         {
             if (instance == null)
@@ -108,7 +65,7 @@ namespace ProfilesMod
             var field = owner.GetField(fieldName, BindingFlags.Instance | BindingFlags.NonPublic);
             if (field == null)
             {
-                Plugin.Log.Error("Native text-entry diagnostic field is missing: " + owner.Name + "." + fieldName);
+                Plugin.Log.Error("Native text-entry field is missing: " + owner.Name + "." + fieldName);
                 return null;
             }
 
@@ -162,11 +119,6 @@ namespace ProfilesMod
                 search, typeof(LevelSearchViewController), "_uiKeyboardManager");
             var selfContained = input != null && HasSelfContainedInputReferences(input);
             var externalListeners = input != null && HasExternalButtonListeners(input);
-            Plugin.Log.Info("Native search input clone checks: input=" + (input != null) +
-                ", globalKeyboard=" + (input != null && input.useGlobalKeyboard) +
-                ", managerActive=" + (keyboardManager != null && keyboardManager.isActiveAndEnabled) +
-                ", keyboard=" + (keyboardManager != null && keyboardManager.keyboard != null) +
-                ", selfContained=" + selfContained + ", externalListeners=" + externalListeners);
             if (input == null || !input.useGlobalKeyboard || keyboardManager == null ||
                 !keyboardManager.isActiveAndEnabled || keyboardManager.keyboard == null ||
                 !selfContained || externalListeners)

@@ -111,7 +111,6 @@ namespace ProfilesMod
                 if (!ProfileDatabase.IsAvailable)
                     return;
 
-                Plugin.Log.Info("Players button clicked.");
                 var sampleText = soloButton.GetComponentInChildren<TMP_Text>(true);
                 if (sampleText == null || sampleText.font == null)
                     throw new InvalidOperationException("Could not find a TextMeshPro font on the Solo button.");
