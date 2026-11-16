@@ -10,6 +10,12 @@ The database contains `players`, `playlists`, `playlist_songs`, and `runs` table
 
 The three PNGs in `Resources` are embedded in `ProfilesMod.dll` and used at runtime for the button's normal, highlighted/pressed, and overlay artwork. The sprites preserve their aspect ratio; the cloned menu button's overall size and layout are unchanged.
 
+## Player profiles
+
+Open `Players` from the main menu to create or select a player. The selected name is highlighted; `Play` saves that selection and continues through the game's Solo flow. Players can be deleted only when they have no recorded runs. The player list scrolls when it contains more entries than fit on screen.
+
+The picker is presented through Beat Saber's main flow coordinator. It clones the configured song-search input and uses the game's global VR keyboard when their required references are available. If no safe native input or text-entry screen is available, name entry is disabled and the picker reports that limitation; Profiles does not create its own keyboard or edit private input-field internals.
+
 ## Requirements
 
 - A clean, 64-bit Beat Saber 1.46.0 installation.
@@ -49,21 +55,19 @@ The plugin bundles the x64 `System.Data.SQLite` provider and deploys its `SQLite
 
 The script preserves other files in the instance, installing BSIPA when absent and upgrading older versions to 4.3.7; it leaves a compatible newer 4.x version in place. It replaces only Profiles' plugin and SQLite dependency files during deployment. If it detects an incomplete installation or an incompatible major version, it stops rather than replacing it silently; review that loader before retrying.
 
-## Manual build and deployment
+## Build and deploy
 
-After BSIPA is installed, build against the intended 1.46.0 instance:
+Run the deployment script from this repository. It builds Release for the selected 1.46.0 instance, refuses to proceed if Beat Saber is running, copies only the plugin and required SQLite runtime files, and verifies their SHA-256 hashes. The default instance is `C:\VR\BSManager\BSInstances\1.46.0`; override it with `-GameDir`.
 
 ```powershell
-dotnet build .\ProfilesMod.csproj -c Release -p:BeatSaberDir="C:\Games\Beat Saber 1.46.0"
+.\Deploy-ProfilesMod.ps1
+.\Deploy-ProfilesMod.ps1 -GameDir 'C:\Games\Beat Saber 1.46.0'
 ```
 
-Copy the output DLLs into that instance's `Plugins` folder and the native provider into its `Plugins\x64` folder:
+Use `-WhatIf` to build and preview the source hashes without copying files. The script does not launch Beat Saber.
 
 ```powershell
-Copy-Item .\bin\Release\net472\ProfilesMod.dll 'C:\Games\Beat Saber 1.46.0\Plugins\ProfilesMod.dll'
-Copy-Item .\bin\Release\net472\System.Data.SQLite.dll 'C:\Games\Beat Saber 1.46.0\Plugins\System.Data.SQLite.dll'
-New-Item -ItemType Directory -Force 'C:\Games\Beat Saber 1.46.0\Plugins\x64'
-Copy-Item .\bin\Release\net472\x64\SQLite.Interop.dll 'C:\Games\Beat Saber 1.46.0\Plugins\x64\SQLite.Interop.dll'
+.\Deploy-ProfilesMod.ps1 -WhatIf
 ```
 
 The plugin manifest is embedded in the DLL. It declares the BSIPA `^4.3.7` dependency required for the loader to accept the plugin.

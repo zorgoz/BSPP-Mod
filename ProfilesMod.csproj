@@ -18,12 +18,36 @@
       <HintPath>$(BSIPALoaderPath)</HintPath>
       <Private>false</Private>
     </Reference>
+    <Reference Include="HMUI">
+      <HintPath>$(GameManagedDir)\HMUI.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="BeatSaber.ViewSystem">
+      <HintPath>$(GameManagedDir)\BeatSaber.ViewSystem.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Main">
+      <HintPath>$(GameManagedDir)\Main.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="VRUI">
+      <HintPath>$(GameManagedDir)\VRUI.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="Zenject">
+      <HintPath>$(GameManagedDir)\Zenject.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
     <Reference Include="0Harmony">
       <HintPath>$(GameLibsDir)\0Harmony.dll</HintPath>
       <Private>false</Private>
     </Reference>
     <Reference Include="UnityEngine.CoreModule">
       <HintPath>$(GameManagedDir)\UnityEngine.CoreModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.UIModule">
+      <HintPath>$(GameManagedDir)\UnityEngine.UIModule.dll</HintPath>
       <Private>false</Private>
     </Reference>
     <Reference Include="UnityEngine.UI">

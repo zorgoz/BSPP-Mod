@@ -116,7 +116,15 @@ namespace ProfilesMod
                 if (sampleText == null || sampleText.font == null)
                     throw new InvalidOperationException("Could not find a TextMeshPro font on the Solo button.");
 
-                PlayerSelectionView.Open(soloButton, sampleText);
+                try
+                {
+                    ProfileFlowCoordinator.Open(soloButton, sampleText.font);
+                }
+                catch (Exception exception)
+                {
+                    Plugin.Log.Error("Could not open the Players screen.");
+                    Plugin.Log.Error(exception.ToString());
+                }
             });
             var colors = button.colors;
             colors.normalColor = Color.white;
