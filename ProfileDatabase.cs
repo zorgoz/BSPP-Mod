@@ -41,8 +41,10 @@ namespace ProfilesMod
                 "score INTEGER NOT NULL, " +
                 "points INTEGER NOT NULL, " +
                 "modifiers TEXT NOT NULL DEFAULT '{}', " +
-                "cleared INTEGER NOT NULL DEFAULT 0 CHECK (cleared IN (0, 1)))",
-            "CREATE INDEX IF NOT EXISTS IX_runs_player_when ON runs (player_id, \"when\")"
+                "cleared INTEGER NOT NULL DEFAULT 0 CHECK (cleared IN (0, 1)), " +
+                "combo INTEGER NOT NULL)",
+            "CREATE INDEX IF NOT EXISTS IX_runs_player_when ON runs (player_id, \"when\")",
+            "CREATE INDEX IF NOT EXISTS IX_runs_player_song_score ON runs (player_id, song_id, score DESC, id)"
         };
 
         private static string _databasePath;
@@ -90,9 +92,11 @@ namespace ProfilesMod
             using (var command = connection.CreateCommand())
             {
                 command.CommandText =
-                    "SELECT p.id, p.name, p.selected, EXISTS (" +
-                    "SELECT 1 FROM runs r WHERE r.player_id = p.id) " +
-                    "FROM players p ORDER BY p.name COLLATE NOCASE, p.id";
+                    "SELECT p.id, p.name, p.selected, COALESCE(s.run_count, 0), COALESCE(s.max_points, 0) " +
+                    "FROM players p LEFT JOIN (" +
+                    "SELECT player_id, COUNT(*) AS run_count, MAX(points) AS max_points " +
+                    "FROM runs GROUP BY player_id) s ON s.player_id = p.id " +
+                    "ORDER BY p.name COLLATE NOCASE, p.id";
 
                 using (var reader = command.ExecuteReader())
                 {
@@ -103,7 +107,8 @@ namespace ProfilesMod
                             reader.GetString(0),
                             reader.GetString(1),
                             reader.GetBoolean(2),
-                            reader.GetBoolean(3)));
+                            reader.GetInt64(3),
+                            reader.GetInt64(4)));
                     }
 
                     return players.ToArray();
@@ -118,7 +123,7 @@ namespace ProfilesMod
             if (normalizedName.Length == 0)
                 throw new ArgumentException("Enter a player name.", nameof(name));
 
-            var player = new PlayerProfile(NewId(), normalizedName, false, false);
+            var player = new PlayerProfile(NewId(), normalizedName, false, 0, 0);
             using (var connection = OpenConnection())
             using (var command = connection.CreateCommand())
             {
@@ -175,6 +180,37 @@ namespace ProfilesMod
                     throw new InvalidOperationException("The selected player no longer exists.");
 
                 transaction.Commit();
+            }
+        }
+
+        internal static SongRunSummary GetSongRunSummary(string playerId, string songId)
+        {
+            EnsureAvailable();
+            if (string.IsNullOrEmpty(playerId))
+                throw new ArgumentException("Player ID is required.", nameof(playerId));
+            if (string.IsNullOrEmpty(songId))
+                throw new ArgumentException("Song ID is required.", nameof(songId));
+
+            using (var connection = OpenConnection())
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText =
+                    "SELECT r.combo, r.points, r.score, r.difficulty, " +
+                    "EXISTS (SELECT 1 FROM runs c WHERE c.player_id = @playerId " +
+                    "AND c.song_id = @songId AND c.cleared = 1) " +
+                    "FROM runs r WHERE r.player_id = @playerId AND r.song_id = @songId " +
+                    "ORDER BY r.score DESC, r.id LIMIT 1";
+                command.Parameters.AddWithValue("@playerId", playerId);
+                command.Parameters.AddWithValue("@songId", songId);
+                using (var reader = command.ExecuteReader())
+                {
+                    if (!reader.Read())
+                        return null;
+
+                    return new SongRunSummary(
+                        reader.GetInt64(0), reader.GetInt64(1), reader.GetInt64(2),
+                        reader.GetString(3), reader.GetBoolean(4));
+                }
             }
         }
 
@@ -263,17 +299,38 @@ namespace ProfilesMod
 
     internal sealed class PlayerProfile
     {
-        internal PlayerProfile(string id, string name, bool isSelected, bool hasRuns)
+        internal PlayerProfile(string id, string name, bool isSelected, long runCount, long maxPoints)
         {
             Id = id;
             Name = name;
             IsSelected = isSelected;
-            HasRuns = hasRuns;
+            RunCount = runCount;
+            MaxPoints = maxPoints;
         }
 
         internal string Id { get; }
         internal string Name { get; }
         internal bool IsSelected { get; }
-        internal bool HasRuns { get; }
+        internal long RunCount { get; }
+        internal long MaxPoints { get; }
+        internal bool HasRuns => RunCount > 0;
+    }
+
+    internal sealed class SongRunSummary
+    {
+        internal SongRunSummary(long combo, long points, long score, string difficulty, bool hasClearedRun)
+        {
+            Combo = combo;
+            Points = points;
+            Score = score;
+            Difficulty = difficulty;
+            HasClearedRun = hasClearedRun;
+        }
+
+        internal long Combo { get; }
+        internal long Points { get; }
+        internal long Score { get; }
+        internal string Difficulty { get; }
+        internal bool HasClearedRun { get; }
     }
 }

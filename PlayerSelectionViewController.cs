@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Globalization;
 using HMUI;
 using TMPro;
 using UnityEngine;
@@ -298,7 +299,11 @@ namespace ProfilesMod
             });
 
             TMP_Text text;
-            CreateText("Name", row.transform, player.Name, 3.4f, TextAlignmentOptions.Midline,
+            var label = player.HasRuns
+                ? string.Format(CultureInfo.InvariantCulture, "{0} (runs: {1}, max: {2})",
+                    player.Name, player.RunCount, player.MaxPoints)
+                : player.Name + " (new player)";
+            CreateText("Name", row.transform, label, 3.4f, TextAlignmentOptions.Midline,
                 Vector2.zero, Vector2.zero, isSelected ? FontStyles.Bold : FontStyles.Normal,
                 Color.white, out text);
             var textRect = (RectTransform)text.transform;

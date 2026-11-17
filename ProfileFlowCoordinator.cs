@@ -179,8 +179,28 @@ namespace ProfilesMod
             if (string.IsNullOrEmpty(selectedPlayerId))
                 return;
 
+            PlayerProfile selected = null;
+            SoloFreePlayFlowCoordinator solo;
+            SimpleDialogPromptViewController prompt;
             try
             {
+                foreach (var player in ProfileDatabase.GetPlayers())
+                {
+                    if (player.Id == selectedPlayerId)
+                    {
+                        selected = player;
+                        break;
+                    }
+                }
+                if (selected == null)
+                    throw new InvalidOperationException("The selected player no longer exists.");
+                solo = ReadDependency<SoloFreePlayFlowCoordinator>(
+                    _mainFlowCoordinator, typeof(MainFlowCoordinator), "_soloFreePlayFlowCoordinator");
+                prompt = ReadDependency<SimpleDialogPromptViewController>(
+                    _mainFlowCoordinator, typeof(MainFlowCoordinator), "_simpleDialogPromptViewController");
+                if (solo == null || prompt == null)
+                    throw new InvalidOperationException("The native Solo flow or tutorial prompt is unavailable.");
+                ProfileSoloSession.Prepare(solo, _sceneContainer);
                 ProfileDatabase.SelectPlayer(selectedPlayerId);
             }
             catch (Exception exception)
@@ -193,8 +213,19 @@ namespace ProfilesMod
             var soloButton = _soloButton;
             _mainFlowCoordinator.DismissFlowCoordinator(this, finishedCallback: () =>
             {
-                if (soloButton != null)
+                try
+                {
+                    if (soloButton == null)
+                        throw new InvalidOperationException("The Solo button is unavailable.");
+                    ProfileSoloSession.Begin(selected, _mainFlowCoordinator, solo, prompt);
                     soloButton.onClick.Invoke();
+                    ProfileSoloSession.CheckPendingTransition();
+                }
+                catch (Exception exception)
+                {
+                    ProfileSoloSession.Clear();
+                    Plugin.Log.Error("Could not enter profile Solo: " + exception);
+                }
             });
         }
 

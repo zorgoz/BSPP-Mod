@@ -30,6 +30,10 @@
       <HintPath>$(GameManagedDir)\Main.dll</HintPath>
       <Private>false</Private>
     </Reference>
+    <Reference Include="DataModels">
+      <HintPath>$(GameManagedDir)\DataModels.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
     <Reference Include="VRUI">
       <HintPath>$(GameManagedDir)\VRUI.dll</HintPath>
       <Private>false</Private>

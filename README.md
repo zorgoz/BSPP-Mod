@@ -4,15 +4,21 @@ Profiles is a BSIPA plugin for Beat Saber 1.46.0. It adds a `Players` button to 
 
 ## Database schema
 
-The database contains `players`, `playlists`, `playlist_songs`, and `runs` tables. Generated row IDs use canonical UUIDv7 strings; `ProfileDatabase.NewId()` supplies them on .NET Framework 4.7.2, which does not provide a built-in UUIDv7 generator. `song_id` stores the globally unique Beat Saber song key. `playlist_songs` uses `(playlist_id, song_id)` as its composite key. Runs have a UUIDv7 `id` in addition to the requested fields so each run has a globally unique row identity.
+The database contains `players`, `playlists`, `playlist_songs`, and `runs` tables. Generated row IDs use canonical UUIDv7 strings; `ProfileDatabase.NewId()` supplies them on .NET Framework 4.7.2, which does not provide a built-in UUIDv7 generator. `song_id` stores Beat Saber's `BeatmapKey.levelId` exactly, including the `custom_level_` prefix for custom songs. `playlist_songs` uses `(playlist_id, song_id)` as its composite key. Runs have a UUIDv7 `id` in addition to the requested fields so each run has a globally unique row identity.
 
 `created` and `when` are stored as ISO 8601 text with an explicit UTC offset, suitable for round-tripping `DateTimeOffset` values (for example, `2026-11-15T21:32:04.5510000+00:00`). `modifiers` is JSON text and defaults to `{}`; `cleared` and `selected` are integer booleans. Foreign keys cascade when a player or playlist is deleted, and partial unique indexes allow at most one selected player and one selected playlist per player.
+
+`runs.combo` is a required integer: a negative value denotes max combo, with its absolute value giving the combo count; a positive value denotes less than max.
 
 The three PNGs in `Resources` are embedded in `ProfilesMod.dll` and used at runtime for the button's normal, highlighted/pressed, and overlay artwork. The sprites preserve their aspect ratio; the cloned menu button's overall size and layout are unchanged.
 
 ## Player profiles
 
 Open `Players` from the main menu to create or select a player. The selected name is highlighted; `Play` saves that selection and continues through the game's Solo flow. Players can be deleted only when they have no recorded runs. The player list scrolls when it contains more entries than fit on screen.
+
+Each row shows the number of recorded runs and their maximum `points`, or `new player` when there are no runs. Both cleared and uncleared recorded runs are counted.
+
+In profile Solo, the right screen shows the player and a placeholder for playlists. Its statistics use the run with the highest `score` for the selected song (ties use the lowest run ID); the statistics are gray if the player has no cleared run for that song. An index on `(player_id, song_id, score DESC, id)` supports this lookup. Normal Solo keeps the stock leaderboard. This display does not record runs.
 
 The picker is presented through Beat Saber's main flow coordinator. It clones the configured song-search input and uses the game's global VR keyboard when their required references are available. If no safe native input or text-entry screen is available, name entry is disabled and the picker reports that limitation; Profiles does not create its own keyboard or edit private input-field internals.
 
