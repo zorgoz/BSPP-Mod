@@ -18,7 +18,9 @@ Open `Players` from the main menu to create or select a player. The selected nam
 
 Each row shows the number of recorded runs and their maximum `points`, or `new player` when there are no runs. Both cleared and uncleared recorded runs are counted.
 
-In profile Solo, the right screen shows the player and a placeholder for playlists. Its statistics use the run with the highest `score` for the selected song (ties use the lowest run ID); the statistics are gray if the player has no cleared run for that song. An index on `(player_id, song_id, score DESC, id)` supports this lookup. Normal Solo keeps the stock leaderboard.
+In profile Solo, the right screen shows the player and their playlists. Use `+` to create a playlist and its edit control to rename or delete it; deletion requires confirmation. Select a playlist title to filter the current song collection, or select it again to remove the playlist filter. The filter resets when leaving Solo, but remains active through gameplay and temporary subviews. The heart toggles the selected song in that playlist independently of other playlists. Playlists are per player, and hearts require a selected song. Normal Solo retains its stock leaderboard and filtering.
+
+The profile statistics use the run with the highest `score` for the selected song (ties use the lowest run ID); the statistics are gray if the player has no cleared run for that song. An index on `(player_id, song_id, score DESC, id)` supports this lookup.
 
 Profile Solo records completed clears and failures for the player active when the attempt starts; practice, quits, and restarts are not recorded. `mode` is the beatmap characteristic's serialized name, `difficulty` is its serialized difficulty, `score` is the game's modifier-adjusted score and `points` is its multiplied score before modifiers. `modifiers` records every GameplayModifiers field as JSON (enum values are the game's numeric values). Full combo is encoded only for cleared runs; a zero full combo cannot be represented distinctly from zero by the signed combo encoding.
 

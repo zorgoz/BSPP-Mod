@@ -7,7 +7,7 @@ using UnityEngine.UI;
 
 namespace ProfilesMod
 {
-    internal sealed class ProfileLeaderboardViewController : LeaderboardViewController
+    internal sealed partial class ProfileLeaderboardViewController : LeaderboardViewController
     {
         private TMP_FontAsset _font;
         private Material _textMaterial;
@@ -19,7 +19,12 @@ namespace ProfilesMod
         private readonly TMP_Text[] _captions = new TMP_Text[3];
         private readonly TMP_Text[] _values = new TMP_Text[3];
         private string _songId;
+        private bool _songIdentifierMissing;
         private Sprite _outlineSprite;
+
+        internal TMP_FontAsset NativeFont => _font;
+        internal Material NativeTextMaterial => _textMaterial;
+        internal Material NativeImageMaterial => _imageMaterial;
 
         internal void Initialize(PlatformLeaderboardViewController stock, Canvas stockCanvas,
             CurvedTextMeshPro text, Material imageMaterial)
@@ -34,11 +39,13 @@ namespace ProfilesMod
         internal void ResetSong()
         {
             _songId = null;
+            _songIdentifierMissing = false;
         }
 
         public override void SetData(in BeatmapKey beatmapKey)
         {
             _songId = beatmapKey.levelId;
+            _songIdentifierMissing = beatmapKey != default(BeatmapKey) && string.IsNullOrEmpty(_songId);
             if (isActivated)
                 RefreshLevelStats();
         }
@@ -83,10 +90,22 @@ namespace ProfilesMod
             }
 
             _heading.text = "Player: " + player.Name;
+            RefreshPlaylists();
             if (string.IsNullOrEmpty(_songId))
             {
-                Plugin.Log.Error("Cannot load profile stats: the selected beatmap has no levelId.");
-                ShowError("Song ID unavailable.");
+                if (_songIdentifierMissing)
+                {
+                    Plugin.Log.Error("Cannot load profile stats or playlist membership: the selected beatmap has no levelId.");
+                    ShowError("Song ID unavailable.");
+                    return;
+                }
+                _status.text = string.Empty;
+                for (var i = 0; i < _values.Length; i++)
+                {
+                    _captions[i].color = new Color(0.65f, 0.65f, 0.65f, 1f);
+                    _values[i].color = _captions[i].color;
+                    _values[i].text = "-";
+                }
                 return;
             }
 
@@ -154,6 +173,7 @@ namespace ProfilesMod
             image.type = Image.Type.Sliced;
             image.color = new Color(0.75f, 0.75f, 0.75f, 0.8f);
             image.raycastTarget = false;
+            BuildPlaylists(box.transform);
 
             var labels = new[] { "COMBO", "HIGHSCORE", "DIFFICULTY" };
             for (var i = 0; i < labels.Length; i++)
@@ -236,6 +256,7 @@ namespace ProfilesMod
 
         protected override void OnDestroy()
         {
+            DestroyPlaylistDialog();
             base.OnDestroy();
             if (_outlineSprite != null)
             {

@@ -26,6 +26,7 @@ namespace ProfilesMod
         private Button _addButton;
         private Button _deleteButton;
         private Button _playButton;
+        private readonly List<Image> _playBorder = new List<Image>();
         private RectTransform _listContainer;
         private GameObject _listObject;
         private ScrollRect _scrollRect;
@@ -115,6 +116,7 @@ namespace ProfilesMod
             buttonBinder.AddBinding(backButton, () => _flow.Close());
             _playButton = CreateButton("PlayButton", panel, "Play",
                 new Vector2(48f, -30f), new Vector2(30f, 6f), out _);
+            CreatePlayBorder(_playButton.transform);
             buttonBinder.AddBinding(_playButton, Play);
             SetPendingName(null);
         }
@@ -169,7 +171,7 @@ namespace ProfilesMod
             }
             input.onValueChanged = new InputFieldView.InputFieldChanged();
             input.onValueChanged.AddListener(value => SetPendingName(value.text));
-            inputObject.AddComponent<ProfileKeyboardPlacement>().Initialize(input, _keyboardManager, this);
+            inputObject.AddComponent<ProfileKeyboardPlacement>().Initialize(input, _keyboardManager, this, SetMessage);
             inputObject.SetActive(true);
             input.SetText(string.Empty);
             return input;
@@ -268,6 +270,8 @@ namespace ProfilesMod
             var selected = FindSelected(players);
             _deleteButton.gameObject.SetActive(selected != null && !selected.HasRuns);
             _playButton.interactable = selected != null;
+            foreach (var edge in _playBorder)
+                edge.color = selected != null ? Color.white : new Color(0.55f, 0.55f, 0.55f, 1f);
             var nameEntryAvailable = _nameInput != null || _flow.IsNameEntryAvailable();
             if (_nameEntryButton != null)
                 _nameEntryButton.interactable = nameEntryAvailable;
@@ -406,6 +410,27 @@ namespace ProfilesMod
             return button;
         }
 
+        private void CreatePlayBorder(Transform parent)
+        {
+            for (var i = 0; i < 4; i++)
+            {
+                var obj = new GameObject("Border", typeof(RectTransform), typeof(CanvasRenderer));
+                obj.transform.SetParent(parent, false);
+                obj.transform.SetAsFirstSibling();
+                var rect = (RectTransform)obj.transform;
+                var horizontal = i < 2;
+                var high = i % 2 == 0;
+                rect.anchorMin = horizontal ? new Vector2(0f, high ? 1f : 0f) : new Vector2(high ? 1f : 0f, 0f);
+                rect.anchorMax = horizontal ? new Vector2(1f, high ? 1f : 0f) : new Vector2(high ? 1f : 0f, 1f);
+                rect.pivot = new Vector2(high ? 1f : 0f, high ? 1f : 0f);
+                rect.anchoredPosition = Vector2.zero;
+                rect.sizeDelta = horizontal ? new Vector2(0f, 0.2f) : new Vector2(0.2f, 0f);
+                var edge = obj.AddComponent<Image>();
+                edge.raycastTarget = false;
+                _playBorder.Add(edge);
+            }
+        }
+
         private void CreateText(string name, Transform parent, string value, float fontSize,
             TextAlignmentOptions alignment, Vector2 position, Vector2 size, FontStyles style,
             Color color, out TMP_Text text)
@@ -450,13 +475,16 @@ namespace ProfilesMod
     {
         private InputFieldView _input;
         private UIKeyboardManager _manager;
-        private PlayerSelectionViewController _view;
+        private ViewController _view;
+        private Action<string> _showError;
 
-        internal void Initialize(InputFieldView input, UIKeyboardManager manager, PlayerSelectionViewController view)
+        internal void Initialize(InputFieldView input, UIKeyboardManager manager, ViewController view,
+            Action<string> showError)
         {
             _input = input;
             _manager = manager;
             _view = view;
+            _showError = showError;
         }
 
         public void OnPointerDown(PointerEventData eventData)
@@ -477,7 +505,7 @@ namespace ProfilesMod
             if (container == null)
             {
                 Plugin.Log.Error("Cannot position the profile keyboard: its container is missing.");
-                _view.SetMessage("Could not position the game's keyboard.");
+                _showError("Could not position the game's keyboard.");
                 yield break;
             }
 

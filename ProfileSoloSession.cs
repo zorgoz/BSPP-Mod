@@ -18,8 +18,11 @@ namespace ProfilesMod
         private static ProfileLeaderboardViewController _view;
         private static bool _pending;
         private static bool _active;
+        private static DiContainer _container;
 
         internal static PlayerProfile Player => _active ? _player : null;
+        internal static SoloFreePlayFlowCoordinator ActiveSolo => _active ? _solo : null;
+        internal static DiContainer Container => _container;
 
         internal static PlayerProfile PlayerFor(SoloFreePlayFlowCoordinator solo)
         {
@@ -62,6 +65,7 @@ namespace ProfilesMod
                 _view = viewObject.AddComponent<ProfileLeaderboardViewController>();
                 _view.Initialize(stock, stockCanvas, text, image.material);
                 _solo = solo;
+                _container = container;
             }
             catch
             {
@@ -118,7 +122,17 @@ namespace ProfilesMod
         internal static void SoloRemoved(SoloFreePlayFlowCoordinator solo)
         {
             if (_active && solo == _solo)
+            {
+                try
+                {
+                    ProfileDatabase.ClearPlaylistSelection(_player.Id);
+                }
+                catch (Exception exception)
+                {
+                    Plugin.Log.Error("Could not reset the playlist filter on Solo exit: " + exception);
+                }
                 Clear();
+            }
         }
 
         internal static bool TryGetView(SoloFreePlayFlowCoordinator solo,
@@ -130,11 +144,29 @@ namespace ProfilesMod
 
         internal static void Clear()
         {
+            ProfilePlaylistFilter.Clear();
             _player = null;
             _main = null;
             _prompt = null;
             _pending = false;
             _active = false;
+        }
+
+        internal static void ShowPanel(SoloFreePlayFlowCoordinator solo, in BeatmapKey key)
+        {
+            if (PlayerFor(solo) == null || _view == null)
+                return;
+            _view.SetData(in key);
+            var setter = AccessTools.Method(typeof(FlowCoordinator), "SetRightScreenViewController");
+            if (setter == null)
+                throw new MissingMethodException("FlowCoordinator.SetRightScreenViewController");
+            setter.Invoke(solo, new object[] { _view, ViewController.AnimationType.None });
+        }
+
+        internal static void ShowPlaylistError(string message)
+        {
+            if (_view != null)
+                _view.SetPlaylistError(message);
         }
     }
 

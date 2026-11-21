@@ -131,6 +131,18 @@ namespace ProfilesMod
             return input;
         }
 
+        internal static InputFieldView GetPlaylistInputTemplate(out UIKeyboardManager keyboardManager)
+        {
+            keyboardManager = null;
+            return _instance == null ? null : _instance.GetSearchInputTemplate(out keyboardManager);
+        }
+
+        internal static void ClosePlaylistKeyboard(InputFieldView input, UIKeyboardManager keyboardManager)
+        {
+            if (_instance != null)
+                _instance.CloseKeyboardFor(input, keyboardManager);
+        }
+
         internal void CloseKeyboardFor(InputFieldView input, UIKeyboardManager keyboardManager)
         {
             var selected = ReadDependency<InputFieldView>(
@@ -201,6 +213,7 @@ namespace ProfilesMod
                 if (solo == null || prompt == null)
                     throw new InvalidOperationException("The native Solo flow or tutorial prompt is unavailable.");
                 ProfileSoloSession.Prepare(solo, _sceneContainer);
+                ProfileDatabase.ClearPlaylistSelection(selectedPlayerId);
                 ProfileDatabase.SelectPlayer(selectedPlayerId);
             }
             catch (Exception exception)

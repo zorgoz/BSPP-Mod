@@ -7,7 +7,7 @@ using System.Security.Cryptography;
 
 namespace ProfilesMod
 {
-    internal static class ProfileDatabase
+    internal static partial class ProfileDatabase
     {
         private static readonly string[] SchemaStatements =
         {
