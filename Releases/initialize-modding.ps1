@@ -1,11 +1,17 @@
 [CmdletBinding()]
 param(
-    [string]$GameDir = (Join-Path $PSScriptRoot '..\1.46.0'),
+    [ValidateNotNullOrEmpty()]
+    [string]$GameDir,
     [switch]$LoaderOnly
 )
 
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
+
+if (-not $PSBoundParameters.ContainsKey('GameDir')) {
+    . (Join-Path $PSScriptRoot 'Select-GameDirectory.ps1')
+    $GameDir = Select-GameDirectory
+}
 
 $bsipaVersion = '4.3.7'
 $minimumBsipaVersion = [version]'4.3.7.0'
@@ -116,6 +122,9 @@ if ($shouldInstallBsipa) {
             throw 'The downloaded BSIPA archive did not contain IPA.exe at its root.'
         }
 
+        if (Get-Process -Name 'Beat Saber' -ErrorAction SilentlyContinue) {
+            throw 'Beat Saber is running. Close it before initializing the mod loader.'
+        }
         Get-ChildItem -LiteralPath $extractPath -Force | ForEach-Object {
             Copy-Item -LiteralPath $_.FullName -Destination $gamePath -Recurse -Force
         }
@@ -137,8 +146,10 @@ if ($shouldInstallBsipa) {
             throw "BSIPA installation reported version $installedVersion, which is outside the required compatible range."
         }
 
-        if (-not (Test-Path -LiteralPath $doorstopDll -PathType Leaf)) {
-            throw 'BSIPA reported success, but the game-root winhttp.dll is missing.'
+        foreach ($requiredFile in @($installerPath, $loaderDll, $doorstopDll)) {
+            if (-not (Test-Path -LiteralPath $requiredFile -PathType Leaf)) {
+                throw "BSIPA reported success, but '$requiredFile' is missing."
+            }
         }
 
         Write-Host "Installed and verified BSIPA $installedVersion."
@@ -149,47 +160,21 @@ if ($shouldInstallBsipa) {
     }
 }
 
+foreach ($requiredFile in @(
+    $installerPath,
+    $loaderDll,
+    $doorstopDll,
+    (Join-Path $gamePath 'Beat Saber_Data\Managed\IPA.Loader.dll'),
+    (Join-Path $gamePath 'Libs\0Harmony.dll')
+)) {
+    if (-not (Test-Path -LiteralPath $requiredFile -PathType Leaf)) {
+        throw "The mod-loader installation is incomplete: '$requiredFile' is missing."
+    }
+}
+
 if (-not $LoaderOnly) {
-    $dotnet = Get-Command dotnet -ErrorAction SilentlyContinue
-    if ($null -eq $dotnet) {
-        throw 'The .NET SDK was not found. Install the SDK or rerun with -LoaderOnly.'
-    }
-
-    $projectPath = Join-Path $PSScriptRoot 'ProfilesMod.csproj'
-    $buildArguments = @(
-        'build',
-        $projectPath,
-        '--configuration',
-        'Release',
-        "-p:BeatSaberDir=$gamePath"
-    )
-    & $dotnet.Source @buildArguments
-    if ($LASTEXITCODE -ne 0) {
-        throw "Profiles build failed with exit code $LASTEXITCODE."
-    }
-
-    $outputDirectory = Join-Path $PSScriptRoot 'bin\Release\net472'
-    $pluginPath = Join-Path $outputDirectory 'ProfilesMod.dll'
-    if (-not (Test-Path -LiteralPath $pluginPath -PathType Leaf)) {
-        throw "Build succeeded but the plugin DLL was not found at '$pluginPath'."
-    }
-
-    $sqliteAssemblyPath = Join-Path $outputDirectory 'System.Data.SQLite.dll'
-    $sqliteNativePath = Join-Path $outputDirectory 'x64\SQLite.Interop.dll'
-    foreach ($dependencyPath in @($sqliteAssemblyPath, $sqliteNativePath)) {
-        if (-not (Test-Path -LiteralPath $dependencyPath -PathType Leaf)) {
-            throw "Build succeeded but a required SQLite dependency was not found at '$dependencyPath'."
-        }
-    }
-
-    $pluginsDirectory = Join-Path $gamePath 'Plugins'
-    New-Item -ItemType Directory -Path $pluginsDirectory -Force | Out-Null
-    Copy-Item -LiteralPath $pluginPath -Destination (Join-Path $pluginsDirectory 'ProfilesMod.dll') -Force
-    Copy-Item -LiteralPath $sqliteAssemblyPath -Destination (Join-Path $pluginsDirectory 'System.Data.SQLite.dll') -Force
-    $sqliteNativeDirectory = Join-Path $pluginsDirectory 'x64'
-    New-Item -ItemType Directory -Path $sqliteNativeDirectory -Force | Out-Null
-    Copy-Item -LiteralPath $sqliteNativePath -Destination (Join-Path $sqliteNativeDirectory 'SQLite.Interop.dll') -Force
-    Write-Host "Built and copied ProfilesMod.dll and its SQLite dependencies to '$pluginsDirectory'."
+    $deploy = Join-Path $PSScriptRoot '..\Deploy-ProfilesMod.ps1'
+    & $deploy -GameDir $gamePath -Confirm:$false
 }
 
 Write-Host 'Initialization complete. Beat Saber was not started; launch it when ready.'

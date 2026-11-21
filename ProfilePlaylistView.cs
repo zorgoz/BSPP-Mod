@@ -165,12 +165,7 @@ namespace ProfilesMod
             text.overflowMode = TextOverflowModes.Ellipsis;
             text.raycastTarget = false;
             button.targetGraphic = text;
-            var colors = button.colors;
-            colors.normalColor = Color.white;
-            colors.highlightedColor = new Color(0.45f, 0.9f, 1f, 1f);
-            colors.pressedColor = new Color(0.25f, 0.7f, 0.9f, 1f);
-            colors.disabledColor = new Color(0.4f, 0.4f, 0.4f, 1f);
-            button.colors = colors;
+            SetPlaylistButtonColors(button);
             textObject.SetActive(true);
             return button;
         }
@@ -194,13 +189,18 @@ namespace ProfilesMod
             icon.material = _imageMaterial;
             icon.raycastTarget = false;
             button.targetGraphic = icon;
+            SetPlaylistButtonColors(button);
+            return button;
+        }
+
+        private static void SetPlaylistButtonColors(Button button)
+        {
             var colors = button.colors;
             colors.normalColor = Color.white;
             colors.highlightedColor = new Color(0.45f, 0.9f, 1f, 1f);
             colors.pressedColor = new Color(0.25f, 0.7f, 0.9f, 1f);
             colors.disabledColor = new Color(0.4f, 0.4f, 0.4f, 1f);
             button.colors = colors;
-            return button;
         }
 
         private static Sprite CreatePlaylistIcon(bool heart, bool filled)

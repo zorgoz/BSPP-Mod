@@ -1,10 +1,16 @@
 [CmdletBinding(SupportsShouldProcess = $true, ConfirmImpact = 'Medium')]
 param(
-    [string]$GameDir = 'C:\VR\BSManager\BSInstances\1.46.0'
+    [ValidateNotNullOrEmpty()]
+    [string]$GameDir
 )
 
 $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
+
+if (-not $PSBoundParameters.ContainsKey('GameDir')) {
+    . (Join-Path $PSScriptRoot 'Releases\Select-GameDirectory.ps1')
+    $GameDir = Select-GameDirectory
+}
 
 $gamePath = [System.IO.Path]::GetFullPath($GameDir)
 $versionFile = Join-Path $gamePath 'BeatSaberVersion.txt'

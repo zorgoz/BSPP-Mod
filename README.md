@@ -1,6 +1,6 @@
 # Profiles
 
-Profiles is a BSIPA plugin for Beat Saber 1.46.0. It adds a `Players` button to the main menu and creates a mod-owned SQLite database, `ProfilesMod.sqlite3`, alongside the Beat Saber game instance. Initialization creates the schema and performs a write probe before making the database available; if that fails, the Players button is disabled, the cause is written to the BSIPA log, and (when the game exposes `HMUI.HoverHint`) the cause appears on hover.
+Profiles 0.9 is a BSIPA plugin for Beat Saber 1.46.0. It adds a `Players` button to the main menu and creates a mod-owned SQLite database, `ProfilesMod.sqlite3`, alongside the Beat Saber game instance. Initialization creates the schema and performs a write probe before making the database available; if that fails, the Players button is disabled, the cause is written to the BSIPA log, and (when the game exposes `HMUI.HoverHint`) the cause appears on hover.
 
 ## Database schema
 
@@ -28,10 +28,10 @@ The picker is presented through Beat Saber's main flow coordinator. It clones th
 
 ## Requirements
 
-- A clean, 64-bit Beat Saber 1.46.0 installation.
+- A complete, 64-bit Beat Saber 1.46.0 installation.
 - Windows PowerShell 5.1 or later.
-- Internet access to download the pinned BSIPA release.
-- The .NET SDK for building and deploying Profiles. The loader-only option does not require the SDK.
+- Internet access to download the pinned BSIPA release when the loader is not already compatible.
+- The .NET SDK only when building Profiles from source; installing a release does not need it.
 
 ## Compatibility note
 
@@ -41,33 +41,37 @@ Profiles declares a dependency on BSIPA `^4.3.7`. The target installation must h
 
 The plugin bundles the x64 `System.Data.SQLite` provider and deploys its `SQLite.Interop.dll` native companion under `Plugins\x64`. It does not depend on an SQLite assembly supplied by Beat Saber.
 
-## Initialize a bare 1.46.0 installation
+## Install the latest release
 
-1. Prepare a bare, unmodded Beat Saber 1.46.0 installation and leave the game closed. Find its instance directory, which should contain `Beat Saber.exe`, `Beat Saber_Data`, and `BeatSaberVersion.txt`.
-2. Open PowerShell in this `ProfilesMod` directory.
-3. Run the initializer, specifying the instance directory if it is not the adjacent `..\1.46.0` folder:
+Leave Beat Saber closed and run from this repository:
 
-   ```powershell
-   .\initialize-modding.ps1 -GameDir 'C:\Games\Beat Saber 1.46.0'
-   ```
+```powershell
+.\install-latest.ps1 -GameDir 'C:\Games\Beat Saber 1.46.0'
+```
 
-   The script checks that the target is 1.46.0, downloads the official BSIPA 4.3.7 x64/.NET Framework release, verifies its SHA-256, extracts it into the game directory, and runs `IPA.exe -n` to install the loader. It then builds Profiles against that 1.46.0 installation and copies `ProfilesMod.dll` and its SQLite dependencies into the `Plugins` folder. It does not start Beat Saber.
+Omit `-GameDir` to choose the game folder in a Windows folder selection dialog. The initializer, standalone installer and source deployment script offer the same choice. Cancellation stops without changing files. In noninteractive mode, supply `-GameDir` explicitly; the dialog also requires an STA PowerShell session (Windows PowerShell defaults to STA; use `-STA` if needed).
 
-   To install only BSIPA without building or copying Profiles, use:
+The script selects the highest numeric `Release-*` folder in `Releases`, verifies that its matching `ProfilesMod-<version>.zip` and `Install-ProfilesMod-<version>.ps1` exist, runs `Releases\initialize-modding.ps1 -LoaderOnly`, then runs the versioned installer. The installer extracts the archive itself. The script does not fetch newer Profiles releases from the internet; update the repository to obtain them.
 
-   ```powershell
-   .\initialize-modding.ps1 -GameDir 'C:\Games\Beat Saber 1.46.0' -LoaderOnly
-   ```
+The initializer checks the game version and mod-loader installation, installs the official BSIPA 4.3.7 x64/.NET Framework release if absent, or upgrades an older loader. The download is checked against its pinned SHA-256 before extraction and `IPA.exe -n` prepares the loader. Compatible 4.x installations are retained; incomplete or incompatible installations stop with an error. For preparation only, run:
 
-   If PowerShell blocks the script, allow scripts only in the current PowerShell process with `Set-ExecutionPolicy -Scope Process Bypass`.
-4. Confirm the installer reports BSIPA 4.3.7 or a newer compatible 4.x version. The plugin and provider should be at `Plugins\ProfilesMod.dll`, `Plugins\System.Data.SQLite.dll`, and `Plugins\x64\SQLite.Interop.dll`.
-5. Start the game when ready. The script intentionally does not launch it. On a successful run, the BSIPA log should show Profiles initialization and the Players main-menu button. The database is created alongside `Beat Saber.exe` on first initialization.
+```powershell
+.\Releases\initialize-modding.ps1 -GameDir 'C:\Games\Beat Saber 1.46.0' -LoaderOnly
+```
 
-The script preserves other files in the instance, installing BSIPA when absent and upgrading older versions to 4.3.7; it leaves a compatible newer 4.x version in place. It replaces only Profiles' plugin and SQLite dependency files during deployment. If it detects an incomplete installation or an incompatible major version, it stops rather than replacing it silently; review that loader before retrying.
+To install 0.9 on an already prepared instance without the repository, keep `Install-ProfilesMod-0.9.ps1` and `ProfilesMod-0.9.zip` together and run from their folder:
+
+```powershell
+.\Install-ProfilesMod-0.9.ps1 -GameDir 'C:\Games\Beat Saber 1.46.0'
+```
+
+The installer checks the loader and game, refuses to proceed while Beat Saber is running or a target file is locked, copies only the plugin and its two SQLite runtime files, and verifies their SHA-256 hashes. It preserves the database and unrelated plugins. Neither script starts Beat Saber. After installation, the BSIPA log should show Profiles initialization and the Players button; the database is created on first initialization.
+
+If PowerShell blocks the scripts, allow scripts only in the current PowerShell process with `Set-ExecutionPolicy -Scope Process Bypass`.
 
 ## Build and deploy
 
-Run the deployment script from this repository. It builds Release for the selected 1.46.0 instance, refuses to proceed if Beat Saber is running, copies only the plugin and required SQLite runtime files, and verifies their SHA-256 hashes. The default instance is `C:\VR\BSManager\BSInstances\1.46.0`; override it with `-GameDir`.
+Run the deployment script from this repository. It builds Release for the selected 1.46.0 instance, refuses to proceed if Beat Saber is running, copies only the plugin and required SQLite runtime files, and verifies their SHA-256 hashes. Supply `-GameDir` or choose the folder when prompted.
 
 ```powershell
 .\Deploy-ProfilesMod.ps1
@@ -80,4 +84,4 @@ Use `-WhatIf` to build and preview the source hashes without copying files. The 
 .\Deploy-ProfilesMod.ps1 -WhatIf
 ```
 
-The plugin manifest is embedded in the DLL. It declares the BSIPA `^4.3.7` dependency required for the loader to accept the plugin.
+For a combined source build and loader preparation, run `.\Releases\initialize-modding.ps1 -GameDir 'C:\Games\Beat Saber 1.46.0'` without `-LoaderOnly`. The manifest and assembly version are 0.9.0; the embedded manifest declares the BSIPA `^4.3.7` dependency.
