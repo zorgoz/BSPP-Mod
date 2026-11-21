@@ -34,6 +34,18 @@
       <HintPath>$(GameManagedDir)\DataModels.dll</HintPath>
       <Private>false</Private>
     </Reference>
+    <Reference Include="GameplayCore">
+      <HintPath>$(GameManagedDir)\GameplayCore.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="BeatmapCore">
+      <HintPath>$(GameManagedDir)\BeatmapCore.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="BGLib.AppFlow">
+      <HintPath>$(GameManagedDir)\BGLib.AppFlow.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
     <Reference Include="VRUI">
       <HintPath>$(GameManagedDir)\VRUI.dll</HintPath>
       <Private>false</Private>

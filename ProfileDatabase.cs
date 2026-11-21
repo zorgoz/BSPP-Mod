@@ -214,6 +214,34 @@ namespace ProfilesMod
             }
         }
 
+        internal static void InsertRun(ProfileRun run)
+        {
+            EnsureAvailable();
+            if (run == null)
+                throw new ArgumentNullException(nameof(run));
+            using (var connection = OpenConnection())
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText =
+                    "INSERT INTO runs (id, player_id, song_id, \"when\", mode, difficulty, " +
+                    "score, points, modifiers, cleared, combo) " +
+                    "VALUES (@id, @playerId, @songId, @when, @mode, @difficulty, " +
+                    "@score, @points, @modifiers, @cleared, @combo)";
+                command.Parameters.AddWithValue("@id", run.Id);
+                command.Parameters.AddWithValue("@playerId", run.PlayerId);
+                command.Parameters.AddWithValue("@songId", run.SongId);
+                command.Parameters.AddWithValue("@when", run.When.ToString("O", CultureInfo.InvariantCulture));
+                command.Parameters.AddWithValue("@mode", run.Mode);
+                command.Parameters.AddWithValue("@difficulty", run.Difficulty);
+                command.Parameters.AddWithValue("@score", run.Score);
+                command.Parameters.AddWithValue("@points", run.Points);
+                command.Parameters.AddWithValue("@modifiers", run.Modifiers);
+                command.Parameters.AddWithValue("@cleared", run.Cleared ? 1 : 0);
+                command.Parameters.AddWithValue("@combo", run.Combo);
+                command.ExecuteNonQuery();
+            }
+        }
+
         internal static string NewId()
         {
             var bytes = new byte[16];

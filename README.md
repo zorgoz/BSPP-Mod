@@ -18,7 +18,9 @@ Open `Players` from the main menu to create or select a player. The selected nam
 
 Each row shows the number of recorded runs and their maximum `points`, or `new player` when there are no runs. Both cleared and uncleared recorded runs are counted.
 
-In profile Solo, the right screen shows the player and a placeholder for playlists. Its statistics use the run with the highest `score` for the selected song (ties use the lowest run ID); the statistics are gray if the player has no cleared run for that song. An index on `(player_id, song_id, score DESC, id)` supports this lookup. Normal Solo keeps the stock leaderboard. This display does not record runs.
+In profile Solo, the right screen shows the player and a placeholder for playlists. Its statistics use the run with the highest `score` for the selected song (ties use the lowest run ID); the statistics are gray if the player has no cleared run for that song. An index on `(player_id, song_id, score DESC, id)` supports this lookup. Normal Solo keeps the stock leaderboard.
+
+Profile Solo records completed clears and failures for the player active when the attempt starts; practice, quits, and restarts are not recorded. `mode` is the beatmap characteristic's serialized name, `difficulty` is its serialized difficulty, `score` is the game's modifier-adjusted score and `points` is its multiplied score before modifiers. `modifiers` records every GameplayModifiers field as JSON (enum values are the game's numeric values). Full combo is encoded only for cleared runs; a zero full combo cannot be represented distinctly from zero by the signed combo encoding.
 
 The picker is presented through Beat Saber's main flow coordinator. It clones the configured song-search input and uses the game's global VR keyboard when their required references are available. If no safe native input or text-entry screen is available, name entry is disabled and the picker reports that limitation; Profiles does not create its own keyboard or edit private input-field internals.
 

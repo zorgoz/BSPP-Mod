@@ -21,6 +21,11 @@ namespace ProfilesMod
 
         internal static PlayerProfile Player => _active ? _player : null;
 
+        internal static PlayerProfile PlayerFor(SoloFreePlayFlowCoordinator solo)
+        {
+            return _active && solo == _solo ? _player : null;
+        }
+
         internal static void Prepare(SoloFreePlayFlowCoordinator solo, DiContainer container)
         {
             if (_view != null && _solo == solo)
