@@ -6,7 +6,7 @@ param(
 
 $ErrorActionPreference = 'Stop'
 $releaseRoot = Join-Path $PSScriptRoot 'Releases'
-$initializer = Join-Path $PSScriptRoot 'Releases\initialize-modding.ps1'
+$initializer = Join-Path $PSScriptRoot 'initialize-modding.ps1'
 if (-not (Test-Path -LiteralPath $releaseRoot -PathType Container) -or
     -not (Test-Path -LiteralPath $initializer -PathType Leaf)) {
     throw 'The release directory or modding initializer is missing.'
@@ -33,7 +33,7 @@ if (-not (Test-Path -LiteralPath $installer -PathType Leaf)) {
 }
 
 if (-not $PSBoundParameters.ContainsKey('GameDir')) {
-    . (Join-Path $PSScriptRoot 'Releases\Select-GameDirectory.ps1')
+    . (Join-Path $PSScriptRoot 'Select-GameDirectory.ps1')
     $GameDir = Select-GameDirectory
 }
 

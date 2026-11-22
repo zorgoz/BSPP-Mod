@@ -8,7 +8,7 @@ $ErrorActionPreference = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
 
 if (-not $PSBoundParameters.ContainsKey('GameDir')) {
-    . (Join-Path $PSScriptRoot 'Releases\Select-GameDirectory.ps1')
+    . (Join-Path $PSScriptRoot 'Select-GameDirectory.ps1')
     $GameDir = Select-GameDirectory
 }
 

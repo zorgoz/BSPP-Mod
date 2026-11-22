@@ -173,7 +173,7 @@ foreach ($requiredFile in @(
 }
 
 if (-not $LoaderOnly) {
-    $deploy = Join-Path $PSScriptRoot '..\Deploy-ProfilesMod.ps1'
+    $deploy = Join-Path $PSScriptRoot 'Deploy-ProfilesMod.ps1'
     & $deploy -GameDir $gamePath -Confirm:$false
 }
 

@@ -19,6 +19,10 @@ namespace ProfilesMod
         private static BeatmapDifficultyMask _allowed;
         private static BeatmapCharacteristic[] _notAllowed;
         private static bool _isFiltered;
+        private static bool _awaitingCatalog;
+        private static BeatmapLevel[] _playlistLevels;
+        private static bool _hasPendingSelection;
+        private static BeatmapLevel _pendingSelection;
 
         internal static bool IsProfileCollection(LevelCollectionNavigationController collection)
         {
@@ -54,14 +58,28 @@ namespace ProfilesMod
             if (_collection == null || !IsProfileCollection(_collection))
                 return;
             var oldLevel = _collection.beatmapLevel;
+            _hasPendingSelection = false;
+            _pendingSelection = null;
             _collection.SetData(_pack, _showPackHeader, _showPracticeButton, _actionButtonText,
                 _sortAlphabetically, _noDataInfoPrefab, _allowed, _notAllowed, _isFiltered);
-            var ids = ProfileDatabase.GetSelectedPlaylistSongs(ProfileSoloSession.Player.Id, out var selected);
-            var stillVisible = oldLevel != null && _pack != null &&
-                _pack.AllBeatmapLevels().Contains(oldLevel) &&
-                (!selected || Array.IndexOf(ids, oldLevel.levelID) >= 0);
-            if (stillVisible)
-                _collection.SelectLevel(oldLevel);
+            if (_awaitingCatalog)
+            {
+                _pendingSelection = oldLevel;
+                _hasPendingSelection = true;
+                return;
+            }
+            RestoreSelection(oldLevel);
+        }
+
+        private static void RestoreSelection(BeatmapLevel oldLevel)
+        {
+            IEnumerable<BeatmapLevel> levels = _playlistLevels;
+            if (levels == null)
+                levels = _pack?.AllBeatmapLevels();
+            var selectedLevel = oldLevel == null ? null :
+                levels?.FirstOrDefault(level => level != null && level.levelID == oldLevel.levelID);
+            if (selectedLevel != null)
+                _collection.SelectLevel(selectedLevel);
             else
             {
                 _collection.ClearSelected();
@@ -76,13 +94,71 @@ namespace ProfilesMod
             _pack = null;
             _noDataInfoPrefab = null;
             _notAllowed = null;
+            _awaitingCatalog = false;
+            _playlistLevels = null;
+            _hasPendingSelection = false;
+            _pendingSelection = null;
         }
 
-        internal static BeatmapLevel[] Apply(BeatmapLevelPack pack, IEnumerable<string> songIds)
+        internal static BeatmapLevel[] Apply(IEnumerable<BeatmapLevelPack> packs, IEnumerable<string> songIds)
         {
             var ids = new HashSet<string>(songIds, StringComparer.Ordinal);
-            return pack == null ? Array.Empty<BeatmapLevel>() :
-                pack.AllBeatmapLevels().Where(level => level != null && ids.Contains(level.levelID)).ToArray();
+            var seen = new HashSet<string>(StringComparer.Ordinal);
+            return packs.Where(pack => pack != null).SelectMany(pack => pack.AllBeatmapLevels())
+                .Where(level => level != null && ids.Contains(level.levelID) && seen.Add(level.levelID))
+                .ToArray();
+        }
+
+        internal static bool SetPlaylistSource(LevelCollectionNavigationController collection,
+            IEnumerable<string> songIds, out BeatmapLevelPack pack)
+        {
+            pack = null;
+            var navigation = ProfileFlowCoordinator.ReadDependency<LevelSelectionNavigationController>(
+                ProfileSoloSession.ActiveSolo, typeof(LevelSelectionFlowCoordinator), "levelSelectionNavigationController");
+            var filtering = ProfileFlowCoordinator.ReadDependency<LevelFilteringNavigationController>(
+                navigation, typeof(LevelSelectionNavigationController), "_levelFilteringNavigationController");
+            if (filtering == null)
+                throw new InvalidOperationException("The native song library is unavailable.");
+            if (AccessTools.Field(typeof(LevelFilteringNavigationController), "_allBeatmapLevelPacks") == null)
+                throw new MissingFieldException("LevelFilteringNavigationController._allBeatmapLevelPacks");
+            var packs = ProfileFlowCoordinator.ReadDependency<BeatmapLevelPack[]>(
+                filtering, typeof(LevelFilteringNavigationController), "_allBeatmapLevelPacks");
+            if (packs == null)
+            {
+                var load = AccessTools.Method(typeof(LevelFilteringNavigationController), "UpdateCustomSongs");
+                if (load == null)
+                    throw new MissingMethodException("LevelFilteringNavigationController.UpdateCustomSongs");
+                _awaitingCatalog = true;
+                collection.ShowLoading();
+                load.Invoke(filtering, null);
+                return false;
+            }
+
+            _awaitingCatalog = false;
+            _playlistLevels = Apply(packs, songIds);
+            pack = BeatmapLevelPack.CreateLevelPackForFiltering(_playlistLevels);
+            return true;
+        }
+
+        internal static void ClearPlaylistSource()
+        {
+            _awaitingCatalog = false;
+            _playlistLevels = null;
+        }
+
+        internal static void SourceUnavailable()
+        {
+            _awaitingCatalog = true;
+        }
+
+        internal static void DataApplied(LevelCollectionNavigationController collection)
+        {
+            if (collection != _collection || _awaitingCatalog || !_hasPendingSelection)
+                return;
+            var oldLevel = _pendingSelection;
+            _hasPendingSelection = false;
+            _pendingSelection = null;
+            RestoreSelection(oldLevel);
         }
     }
 
@@ -91,7 +167,7 @@ namespace ProfilesMod
     {
         private static bool Prefix(LevelCollectionNavigationController __instance,
             ref BeatmapLevelPack beatmapLevelPack, bool showPackHeader, bool showPracticeButton,
-            string actionButtonText, bool sortAlphabetically, GameObject noDataInfoPrefab,
+            string actionButtonText, bool sortAlphabetically, ref GameObject noDataInfoPrefab,
             BeatmapDifficultyMask allowedBeatmapDifficultyMask, BeatmapCharacteristic[] notAllowedCharacteristics,
             ref bool isFiltered)
         {
@@ -106,18 +182,29 @@ namespace ProfilesMod
                 var ids = ProfileDatabase.GetSelectedPlaylistSongs(ProfileSoloSession.Player.Id, out var selected);
                 if (selected)
                 {
-                    beatmapLevelPack = BeatmapLevelPack.CreateLevelPackForFiltering(
-                        ProfilePlaylistFilter.Apply(beatmapLevelPack, ids));
+                    if (!ProfilePlaylistFilter.SetPlaylistSource(__instance, ids, out var playlistPack))
+                        return false;
+                    beatmapLevelPack = playlistPack;
                     isFiltered = true;
+                    noDataInfoPrefab = null;
                 }
+                else
+                    ProfilePlaylistFilter.ClearPlaylistSource();
                 return true;
             }
             catch (Exception exception)
             {
+                ProfilePlaylistFilter.SourceUnavailable();
                 Plugin.Log.Error("Could not filter songs by playlist: " + exception);
                 ProfileSoloSession.ShowPlaylistError("Playlist filter unavailable.");
                 return false;
             }
+        }
+
+        private static void Postfix(LevelCollectionNavigationController __instance)
+        {
+            if (ProfilePlaylistFilter.IsProfileCollection(__instance))
+                ProfilePlaylistFilter.DataApplied(__instance);
         }
     }
 
