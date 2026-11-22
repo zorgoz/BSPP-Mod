@@ -3,8 +3,8 @@
   "author": "Local",
   "description": "Adds Players access backed by a mod-owned profile database.",
   "gameVersion": "1.46.0",
-  "id": "ProfilesMod",
-  "name": "Profiles",
+  "id": "PlayerProfiles",
+  "name": "Player Profiles",
   "version": "0.9.3",
   "dependsOn": {
     "BSIPA": "^4.3.7"
