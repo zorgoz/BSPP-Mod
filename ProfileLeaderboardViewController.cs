@@ -16,8 +16,8 @@ namespace ProfilesMod
         private Canvas _stockCanvas;
         private TMP_Text _heading;
         private TMP_Text _status;
-        private readonly TMP_Text[] _captions = new TMP_Text[3];
-        private readonly TMP_Text[] _values = new TMP_Text[3];
+        private readonly TMP_Text[] _captions = new TMP_Text[4];
+        private readonly TMP_Text[] _values = new TMP_Text[4];
         private string _songId;
         private bool _songIdentifierMissing;
         private Sprite _outlineSprite;
@@ -112,19 +112,20 @@ namespace ProfilesMod
             try
             {
                 var summary = ProfileDatabase.GetSongRunSummary(player.Id, _songId);
-                var color = summary != null && summary.HasClearedRun
-                    ? Color.white : new Color(0.65f, 0.65f, 0.65f, 1f);
                 for (var i = 0; i < _values.Length; i++)
                 {
-                    _captions[i].color = color;
-                    _values[i].color = color;
+                    _captions[i].color = new Color(0.65f, 0.65f, 0.65f, 1f);
+                    _values[i].color = summary == null ? _captions[i].color : Color.white;
                 }
                 _status.text = string.Empty;
                 _values[0].text = summary == null ? "-" : FormatCombo(summary.Combo);
                 _values[1].text = summary == null ? "-" :
-                    summary.Points.ToString(CultureInfo.InvariantCulture) + "/" +
-                    summary.Score.ToString(CultureInfo.InvariantCulture);
+                    summary.Points.ToString(CultureInfo.InvariantCulture) + " (" +
+                    summary.Score.ToString("F1", CultureInfo.InvariantCulture) + "%)";
                 _values[2].text = summary == null ? "-" : summary.Difficulty;
+                _values[3].text = summary == null ? "-" : summary.Rank ?? "-";
+                if (summary == null || summary.Rank == null)
+                    _values[3].color = _captions[3].color;
             }
             catch (Exception exception)
             {
@@ -145,7 +146,7 @@ namespace ProfilesMod
             _status.text = message;
             for (var i = 0; i < _values.Length; i++)
             {
-                _captions[i].color = Color.white;
+                _captions[i].color = new Color(0.65f, 0.65f, 0.65f, 1f);
                 _values[i].color = Color.white;
                 _values[i].text = "!";
             }
@@ -175,11 +176,11 @@ namespace ProfilesMod
             image.raycastTarget = false;
             BuildPlaylists(box.transform);
 
-            var labels = new[] { "COMBO", "HIGHSCORE", "DIFFICULTY" };
+            var labels = new[] { "COMBO", "HIGHSCORE", "DIFFICULTY", "RANK" };
             for (var i = 0; i < labels.Length; i++)
             {
-                var left = 0.02f + i * 0.32f;
-                var right = left + 0.32f;
+                var left = 0.02f + i * 0.24f;
+                var right = left + 0.24f;
                 _captions[i] = CreateText(labels[i] + "Caption", labels[i], 2.8f,
                     new Vector2(left, 0.19f), new Vector2(right, 0.25f), FontStyles.Bold);
                 _values[i] = CreateText(labels[i] + "Value", "-", 3.2f,

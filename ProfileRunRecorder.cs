@@ -13,10 +13,10 @@ namespace ProfilesMod
         internal DateTimeOffset When { get; set; }
         internal string Mode { get; set; }
         internal string Difficulty { get; set; }
-        internal int Score { get; set; }
+        internal double Score { get; set; }
         internal int Points { get; set; }
         internal string Modifiers { get; set; }
-        internal bool Cleared { get; set; }
+        internal string Rank { get; set; }
         internal int Combo { get; set; }
     }
 
@@ -72,6 +72,8 @@ namespace ProfilesMod
                 throw new InvalidOperationException("The completed run is missing its player, song, mode, or modifiers.");
             if (result.maxCombo < 0)
                 throw new InvalidOperationException("The game's maximum combo is negative.");
+            if (result.score.maxMultiplied <= 0)
+                throw new InvalidOperationException("The beatmap has no positive maximum score; its score percentage cannot be recorded.");
 
             var mode = key.characteristic.SerializedName();
             if (string.IsNullOrEmpty(mode))
@@ -99,10 +101,11 @@ namespace ProfilesMod
                 When = DateTimeOffset.UtcNow,
                 Mode = mode,
                 Difficulty = key.difficulty.SerializedName(),
-                Score = result.score.modified,
+                Score = Math.Round(100.0 * result.score.multiplied / result.score.maxMultiplied, 1),
                 Points = result.score.multiplied,
                 Modifiers = json,
-                Cleared = result.levelEndStateType == LevelCompletionResultsBase.LevelEndStateType.Cleared,
+                Rank = result.levelEndStateType == LevelCompletionResultsBase.LevelEndStateType.Cleared
+                    ? RankModel.GetRankName(result.rank) : null,
                 Combo = result.levelEndStateType == LevelCompletionResultsBase.LevelEndStateType.Cleared &&
                     result.fullCombo ? -result.maxCombo : result.maxCombo
             };

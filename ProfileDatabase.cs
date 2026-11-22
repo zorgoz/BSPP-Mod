@@ -38,13 +38,13 @@ namespace ProfilesMod
                 "\"when\" TEXT NOT NULL, " +
                 "mode TEXT NOT NULL, " +
                 "difficulty TEXT NOT NULL, " +
-                "score INTEGER NOT NULL, " +
+                "score REAL NOT NULL, " +
                 "points INTEGER NOT NULL, " +
                 "modifiers TEXT NOT NULL DEFAULT '{}', " +
-                "cleared INTEGER NOT NULL DEFAULT 0 CHECK (cleared IN (0, 1)), " +
+                "rank TEXT, " +
                 "combo INTEGER NOT NULL)",
             "CREATE INDEX IF NOT EXISTS IX_runs_player_when ON runs (player_id, \"when\")",
-            "CREATE INDEX IF NOT EXISTS IX_runs_player_song_score ON runs (player_id, song_id, score DESC, id)"
+            "CREATE INDEX IF NOT EXISTS IX_runs_player_song_points ON runs (player_id, song_id, points DESC, id)"
         };
 
         private static string _databasePath;
@@ -195,11 +195,9 @@ namespace ProfilesMod
             using (var command = connection.CreateCommand())
             {
                 command.CommandText =
-                    "SELECT r.combo, r.points, r.score, r.difficulty, " +
-                    "EXISTS (SELECT 1 FROM runs c WHERE c.player_id = @playerId " +
-                    "AND c.song_id = @songId AND c.cleared = 1) " +
+                    "SELECT r.combo, r.points, r.score, r.difficulty, r.rank " +
                     "FROM runs r WHERE r.player_id = @playerId AND r.song_id = @songId " +
-                    "ORDER BY r.score DESC, r.id LIMIT 1";
+                    "ORDER BY r.points DESC, r.id LIMIT 1";
                 command.Parameters.AddWithValue("@playerId", playerId);
                 command.Parameters.AddWithValue("@songId", songId);
                 using (var reader = command.ExecuteReader())
@@ -208,8 +206,8 @@ namespace ProfilesMod
                         return null;
 
                     return new SongRunSummary(
-                        reader.GetInt64(0), reader.GetInt64(1), reader.GetInt64(2),
-                        reader.GetString(3), reader.GetBoolean(4));
+                        reader.GetInt64(0), reader.GetInt64(1), reader.GetDouble(2),
+                        reader.GetString(3), reader.IsDBNull(4) ? null : reader.GetString(4));
                 }
             }
         }
@@ -224,9 +222,9 @@ namespace ProfilesMod
             {
                 command.CommandText =
                     "INSERT INTO runs (id, player_id, song_id, \"when\", mode, difficulty, " +
-                    "score, points, modifiers, cleared, combo) " +
+                    "score, points, modifiers, rank, combo) " +
                     "VALUES (@id, @playerId, @songId, @when, @mode, @difficulty, " +
-                    "@score, @points, @modifiers, @cleared, @combo)";
+                    "@score, @points, @modifiers, @rank, @combo)";
                 command.Parameters.AddWithValue("@id", run.Id);
                 command.Parameters.AddWithValue("@playerId", run.PlayerId);
                 command.Parameters.AddWithValue("@songId", run.SongId);
@@ -236,7 +234,7 @@ namespace ProfilesMod
                 command.Parameters.AddWithValue("@score", run.Score);
                 command.Parameters.AddWithValue("@points", run.Points);
                 command.Parameters.AddWithValue("@modifiers", run.Modifiers);
-                command.Parameters.AddWithValue("@cleared", run.Cleared ? 1 : 0);
+                command.Parameters.AddWithValue("@rank", (object)run.Rank ?? DBNull.Value);
                 command.Parameters.AddWithValue("@combo", run.Combo);
                 command.ExecuteNonQuery();
             }
@@ -346,19 +344,19 @@ namespace ProfilesMod
 
     internal sealed class SongRunSummary
     {
-        internal SongRunSummary(long combo, long points, long score, string difficulty, bool hasClearedRun)
+        internal SongRunSummary(long combo, long points, double score, string difficulty, string rank)
         {
             Combo = combo;
             Points = points;
             Score = score;
             Difficulty = difficulty;
-            HasClearedRun = hasClearedRun;
+            Rank = rank;
         }
 
         internal long Combo { get; }
         internal long Points { get; }
-        internal long Score { get; }
+        internal double Score { get; }
         internal string Difficulty { get; }
-        internal bool HasClearedRun { get; }
+        internal string Rank { get; }
     }
 }
