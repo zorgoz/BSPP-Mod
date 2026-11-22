@@ -18,7 +18,7 @@ The database contains `players`, `playlists`, `playlist_songs`, and `runs` table
 
 `runs.combo` is a required integer: a negative value denotes max combo, with its absolute value giving the combo count; a positive value denotes less than max.
 
-The three PNGs in `Resources` are embedded in `ProfilesMod.dll` and used at runtime for the button's normal, highlighted/pressed, and overlay artwork. The sprites preserve their aspect ratio; the cloned menu button's overall size and layout are unchanged.
+The three PNGs in `Resources` are embedded in `ProfilesMod.dll` and used at runtime for the button's normal, highlighted/pressed, and overlay artwork. The artwork fills the cloned image rectangles; the menu button's overall size and layout are unchanged.
 
 ## Player profiles
 
@@ -30,7 +30,7 @@ Open `Players` from the main menu to create or select a player. The selected nam
 
 Each row shows the number of recorded runs and their maximum `points`, or `new player` when there are no runs. Both cleared and uncleared recorded runs are counted.
 
-In profile Solo, the right screen shows the player and their playlists. Use `+` to create a playlist and its edit control to rename or delete it; deletion requires confirmation. Select a playlist title to show its songs from the full available library, regardless of the current stock pack or filter; select it again to restore the stock song list. The selection resets when leaving Solo, but remains active through gameplay and temporary subviews. The heart toggles the selected song in that playlist independently of other playlists. Playlists are per player, and hearts require a selected song. Normal Solo retains its stock leaderboard and filtering.
+In profile Solo, the main title identifies the player, and the right screen shows their playlists. Use `+` to create a playlist and its edit control to rename or delete it; deletion requires confirmation. Select a playlist title to show its songs from the full available library, regardless of the current stock pack or filter; the title identifies the playlist and the category buttons are hidden. Select it again to restore the stock song list and category buttons. The selection resets when leaving Solo, but remains active through gameplay and temporary subviews. The heart toggles the selected song in that playlist independently of other playlists. Playlists are per player, and hearts require a selected song. Normal Solo retains its stock leaderboard and filtering.
 
 ![Player playlists and song statistics](player-board.PNG)
 

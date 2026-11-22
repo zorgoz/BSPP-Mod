@@ -16,6 +16,7 @@ namespace ProfilesMod
         private TMP_Text _playlistError;
         private ProfilePlaylistDialog _playlistDialog;
         private Sprite _playlistMaskSprite;
+        private Sprite _addBorderSprite;
         private Sprite _editSprite;
         private Sprite _emptyHeartSprite;
         private Sprite _filledHeartSprite;
@@ -28,8 +29,9 @@ namespace ProfilesMod
             addBorderObject.transform.SetParent(add.transform, false);
             addBorderObject.transform.SetAsFirstSibling();
             SetAnchors((RectTransform)addBorderObject.transform, Vector2.zero, Vector2.one);
+            _addBorderSprite = CreateRoundedSprite(16, 0f, 3f, 1500f, 3f);
             var addBorder = addBorderObject.AddComponent<ImageView>();
-            addBorder.sprite = _outlineSprite;
+            addBorder.sprite = _addBorderSprite;
             addBorder.material = _imageMaterial;
             addBorder.type = Image.Type.Sliced;
             addBorder.color = Color.white;
@@ -84,6 +86,11 @@ namespace ProfilesMod
             try
             {
                 var playlists = ProfileDatabase.GetPlaylists(player.Id, _songId);
+                string selectedName = null;
+                foreach (var playlist in playlists)
+                    if (playlist.Selected)
+                        selectedName = playlist.Name;
+                ProfileSoloSession.SetPlaylistName(selectedName);
                 foreach (var row in _playlistRows)
                 {
                     row.SetActive(false);
@@ -307,6 +314,11 @@ namespace ProfilesMod
             _playlistDialog = null;
             if (_playlistMaskSprite != null)
                 Destroy(_playlistMaskSprite);
+            if (_addBorderSprite != null)
+            {
+                Destroy(_addBorderSprite.texture);
+                Destroy(_addBorderSprite);
+            }
             DestroyPlaylistIcon(_editSprite);
             DestroyPlaylistIcon(_emptyHeartSprite);
             DestroyPlaylistIcon(_filledHeartSprite);

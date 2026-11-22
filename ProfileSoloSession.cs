@@ -19,6 +19,43 @@ namespace ProfilesMod
         private static bool _pending;
         private static bool _active;
         private static DiContainer _container;
+        private static string _playlistName;
+        private static HiddenControls _categoryControls;
+        private static HiddenControls _packControls;
+
+        private sealed class HiddenControls
+        {
+            private readonly CanvasGroup _group;
+            private readonly bool _created;
+            private readonly float _alpha;
+            private readonly bool _interactable;
+            private readonly bool _blocksRaycasts;
+
+            internal HiddenControls(GameObject controls)
+            {
+                _group = controls.GetComponent<CanvasGroup>();
+                _created = _group == null;
+                if (_created)
+                    _group = controls.AddComponent<CanvasGroup>();
+                _alpha = _group.alpha;
+                _interactable = _group.interactable;
+                _blocksRaycasts = _group.blocksRaycasts;
+                _group.alpha = 0f;
+                _group.interactable = false;
+                _group.blocksRaycasts = false;
+            }
+
+            internal void Restore()
+            {
+                if (_group == null)
+                    return;
+                _group.alpha = _alpha;
+                _group.interactable = _interactable;
+                _group.blocksRaycasts = _blocksRaycasts;
+                if (_created)
+                    UnityEngine.Object.Destroy(_group);
+            }
+        }
 
         internal static PlayerProfile Player => _active ? _player : null;
         internal static SoloFreePlayFlowCoordinator ActiveSolo => _active ? _solo : null;
@@ -144,12 +181,75 @@ namespace ProfilesMod
 
         internal static void Clear()
         {
+            RestoreCategoryControls();
             ProfilePlaylistFilter.Clear();
+            _playlistName = null;
             _player = null;
             _main = null;
             _prompt = null;
             _pending = false;
             _active = false;
+        }
+
+        internal static string MainTitle => _playlistName == null
+            ? "Solo: " + _player.Name
+            : "Playlist: " + _player.Name + " / " + _playlistName;
+
+        internal static void SetPlaylistName(string playlistName)
+        {
+            if (!_active || _solo == null)
+                return;
+            if (playlistName != null)
+                HideCategoryControls();
+            else
+                RestoreCategoryControls();
+            var changed = _playlistName != playlistName;
+            _playlistName = playlistName;
+            if (!changed)
+                return;
+            var navigation = ProfileFlowCoordinator.ReadDependency<LevelSelectionNavigationController>(
+                _solo, typeof(LevelSelectionFlowCoordinator), "levelSelectionNavigationController");
+            if (_solo.topViewController != navigation)
+                return;
+            var setter = AccessTools.Method(typeof(FlowCoordinator), "SetTitle");
+            if (setter == null)
+                throw new MissingMethodException("FlowCoordinator.SetTitle");
+            setter.Invoke(_solo, new object[] { MainTitle, ViewController.AnimationType.None });
+        }
+
+        private static void HideCategoryControls()
+        {
+            if (_categoryControls != null)
+                return;
+            var navigation = ProfileFlowCoordinator.ReadDependency<LevelSelectionNavigationController>(
+                _solo, typeof(LevelSelectionFlowCoordinator), "levelSelectionNavigationController");
+            var filtering = ProfileFlowCoordinator.ReadDependency<LevelFilteringNavigationController>(
+                navigation, typeof(LevelSelectionNavigationController), "_levelFilteringNavigationController");
+            var categories = ProfileFlowCoordinator.ReadDependency<SelectLevelCategoryViewController>(
+                filtering, typeof(LevelFilteringNavigationController), "_selectLevelCategoryViewController");
+            var packs = ProfileFlowCoordinator.ReadDependency<AnnotatedBeatmapLevelCollectionsViewController>(
+                filtering, typeof(LevelFilteringNavigationController), "_annotatedBeatmapLevelCollectionsViewController");
+            if (categories == null || packs == null)
+                throw new InvalidOperationException("The native song category or pack controls are unavailable.");
+            _categoryControls = new HiddenControls(categories.gameObject);
+            try
+            {
+                _packControls = new HiddenControls(packs.gameObject);
+            }
+            catch
+            {
+                _categoryControls.Restore();
+                _categoryControls = null;
+                throw;
+            }
+        }
+
+        private static void RestoreCategoryControls()
+        {
+            _categoryControls?.Restore();
+            _packControls?.Restore();
+            _categoryControls = null;
+            _packControls = null;
         }
 
         internal static void ShowPanel(SoloFreePlayFlowCoordinator solo, in BeatmapKey key)
@@ -247,6 +347,16 @@ namespace ProfilesMod
                 return true;
             __result = view;
             return false;
+        }
+    }
+
+    [HarmonyPatch(typeof(SoloFreePlayFlowCoordinator), "get_mainTitle")]
+    internal static class ProfileSoloTitlePatch
+    {
+        private static void Postfix(SoloFreePlayFlowCoordinator __instance, ref string __result)
+        {
+            if (ProfileSoloSession.PlayerFor(__instance) != null)
+                __result = ProfileSoloSession.MainTitle;
         }
     }
 }

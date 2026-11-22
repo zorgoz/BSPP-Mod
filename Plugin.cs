@@ -253,11 +253,11 @@ namespace ProfilesMod
             foreach (var image in primaryImages)
             {
                 image.sprite = _playersButtonSprite;
-                image.preserveAspect = true;
+                image.preserveAspect = false;
             }
 
             overlayImage.sprite = _playersOverlaySprite;
-            overlayImage.preserveAspect = true;
+            overlayImage.preserveAspect = false;
             overlayImage.raycastTarget = false;
 
             SetSpriteField(spriteSwapType, spriteSwapComponents, "_normalStateSprite", _playersButtonSprite);

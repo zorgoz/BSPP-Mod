@@ -14,13 +14,12 @@ namespace ProfilesMod
         private Material _imageMaterial;
         private PlatformLeaderboardViewController _stock;
         private Canvas _stockCanvas;
-        private TMP_Text _heading;
         private TMP_Text _status;
         private readonly TMP_Text[] _captions = new TMP_Text[4];
         private readonly TMP_Text[] _values = new TMP_Text[4];
         private string _songId;
         private bool _songIdentifierMissing;
-        private Sprite _outlineSprite;
+        private Sprite _playlistBackgroundSprite;
 
         internal TMP_FontAsset NativeFont => _font;
         internal Material NativeTextMaterial => _textMaterial;
@@ -80,7 +79,7 @@ namespace ProfilesMod
 
         public override void RefreshLevelStats()
         {
-            if (_heading == null)
+            if (_status == null)
                 return;
             var player = ProfileSoloSession.Player;
             if (player == null)
@@ -89,7 +88,6 @@ namespace ProfilesMod
                 return;
             }
 
-            _heading.text = "Player: " + player.Name;
             RefreshPlaylists();
             if (string.IsNullOrEmpty(_songId))
             {
@@ -160,19 +158,17 @@ namespace ProfilesMod
             rectTransform.offsetMin = Vector2.zero;
             rectTransform.offsetMax = Vector2.zero;
 
-            _heading = CreateText("Player", "", 4f, new Vector2(0.04f, 0.88f),
-                new Vector2(0.96f, 0.98f), FontStyles.Bold);
             CreateText("PlaylistsCaption", "Playlists", 3.5f, new Vector2(0.04f, 0.76f),
                 new Vector2(0.96f, 0.86f), FontStyles.Bold);
             var box = new GameObject("PlaylistsBox", typeof(RectTransform), typeof(CanvasRenderer));
             box.transform.SetParent(transform, false);
             SetAnchors((RectTransform)box.transform, new Vector2(0.06f, 0.32f), new Vector2(0.94f, 0.75f));
-            _outlineSprite = CreateOutlineSprite();
+            _playlistBackgroundSprite = CreateRoundedSprite(1024, 360f, null, 4000f, 360f);
             var image = box.AddComponent<ImageView>();
-            image.sprite = _outlineSprite;
+            image.sprite = _playlistBackgroundSprite;
             image.material = _imageMaterial;
             image.type = Image.Type.Sliced;
-            image.color = new Color(0.75f, 0.75f, 0.75f, 0.8f);
+            image.color = new Color(0.5f, 0.5f, 0.5f, 0.3f);
             image.raycastTarget = false;
             BuildPlaylists(box.transform);
 
@@ -223,18 +219,18 @@ namespace ProfilesMod
             rect.offsetMax = Vector2.zero;
         }
 
-        private static Sprite CreateOutlineSprite()
+        private static Sprite CreateRoundedSprite(int size, float radius, float? outlineThickness,
+            float pixelsPerUnit, float border)
         {
-            const int size = 64;
-            const float radius = 12f;
-            const float thickness = 2f;
             var texture = new Texture2D(size, size, TextureFormat.RGBA32, false);
             var pixels = new Color32[size * size];
             for (var y = 0; y < size; y++)
             for (var x = 0; x < size; x++)
             {
                 var outer = InsideRoundedRect(x + 0.5f, y + 0.5f, 0f, size, radius);
-                var inner = InsideRoundedRect(x + 0.5f, y + 0.5f, thickness, size - thickness, radius - thickness);
+                var inner = outlineThickness.HasValue &&
+                    InsideRoundedRect(x + 0.5f, y + 0.5f, outlineThickness.Value,
+                        size - outlineThickness.Value, Mathf.Max(0f, radius - outlineThickness.Value));
                 pixels[y * size + x] = new Color32(255, 255, 255, (byte)(outer && !inner ? 255 : 0));
             }
             texture.SetPixels32(pixels);
@@ -242,8 +238,8 @@ namespace ProfilesMod
             texture.filterMode = FilterMode.Bilinear;
             texture.wrapMode = TextureWrapMode.Clamp;
             return Sprite.Create(texture, new Rect(0f, 0f, size, size),
-                new Vector2(0.5f, 0.5f), 400f, 0, SpriteMeshType.FullRect,
-                new Vector4(radius, radius, radius, radius));
+                new Vector2(0.5f, 0.5f), pixelsPerUnit, 0, SpriteMeshType.FullRect,
+                new Vector4(border, border, border, border));
         }
 
         private static bool InsideRoundedRect(float x, float y, float min, float max, float radius)
@@ -259,10 +255,10 @@ namespace ProfilesMod
         {
             DestroyPlaylistDialog();
             base.OnDestroy();
-            if (_outlineSprite != null)
+            if (_playlistBackgroundSprite != null)
             {
-                Destroy(_outlineSprite.texture);
-                Destroy(_outlineSprite);
+                Destroy(_playlistBackgroundSprite.texture);
+                Destroy(_playlistBackgroundSprite);
             }
         }
     }
