@@ -2,6 +2,14 @@
 
 Profiles 0.9.1 is a BSIPA plugin for Beat Saber 1.46.0. It adds a `Players` button to the main menu and creates a mod-owned SQLite database, `ProfilesMod.sqlite3`, alongside the Beat Saber game instance. Initialization creates the schema and performs a write probe before making the database available; if that fails, the Players button is disabled, the cause is written to the BSIPA log, and (when the game exposes `HMUI.HoverHint`) the cause appears on hover.
 
+## Disclaimer and development
+
+This is an unofficial community mod, not affiliated with or endorsed by Beat Saber or its developers. It was developed iteratively with GitHub Copilot assistance, using C# and the .NET SDK, inspection of Beat Saber 1.46.0 managed assemblies with ILSpy, focused checks, logs, and player feedback. It uses BSIPA, Harmony, and System.Data.SQLite; those projects and Beat Saber remain subject to their own licenses.
+
+The mod is provided as-is, without warranty. Back up your game and profile data before installing or updating it.
+
+The source in this repository is licensed under the [MIT License](LICENSE).
+
 ## Database schema
 
 The database contains `players`, `playlists`, `playlist_songs`, and `runs` tables. Generated row IDs use canonical UUIDv7 strings; `ProfileDatabase.NewId()` supplies them on .NET Framework 4.7.2, which does not provide a built-in UUIDv7 generator. `song_id` stores Beat Saber's `BeatmapKey.levelId` exactly, including the `custom_level_` prefix for custom songs. `playlist_songs` uses `(playlist_id, song_id)` as its composite key. Runs have a UUIDv7 `id` in addition to the requested fields so each run has a globally unique row identity.
