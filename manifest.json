@@ -1,4 +1,5 @@
 {
+  "$schema": "https://raw.githubusercontent.com/bsmg/BSIPA-MetadataFileSchema/master/Schema.json",
   "author": "Local",
   "description": "Adds Players access backed by a mod-owned profile database.",
   "gameVersion": "1.46.0",
