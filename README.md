@@ -1,6 +1,6 @@
 # Profiles
 
-Profiles 0.9.2 is a BSIPA plugin for Beat Saber 1.46.0. It adds a `Players` button to the main menu and creates a mod-owned SQLite database, `ProfilesMod.sqlite3`, alongside the Beat Saber game instance. Initialization creates the schema and performs a write probe before making the database available; if that fails, the Players button is disabled, the cause is written to the BSIPA log, and (when the game exposes `HMUI.HoverHint`) the cause appears on hover.
+Profiles 0.9.3 is a BSIPA plugin for Beat Saber 1.46.0. It adds a `Players` button to the main menu and creates a mod-owned SQLite database, `ProfilesMod.sqlite3`, alongside the Beat Saber game instance. Initialization creates the schema and performs a write probe before making the database available; if that fails, the Players button is disabled, the cause is written to the BSIPA log, and (when the game exposes `HMUI.HoverHint`) the cause appears on hover.
 
 ## Disclaimer and development
 
@@ -73,10 +73,10 @@ The initializer checks the game version and mod-loader installation, installs th
 .\initialize-modding.ps1 -GameDir 'C:\Games\Beat Saber 1.46.0' -LoaderOnly
 ```
 
-To install 0.9.2 without the repository, download the release assets. On an unprepared instance, first keep `initialize-modding.ps1` and `Select-GameDirectory.ps1` together and run the initialization command above with `-LoaderOnly`. Then keep `Install-ProfilesMod-0.9.2.ps1` and `ProfilesMod-0.9.2.zip` together and run from their folder:
+To install 0.9.3 without the repository, download the release assets. On an unprepared instance, first keep `initialize-modding.ps1` and `Select-GameDirectory.ps1` together and run the initialization command above with `-LoaderOnly`. Then keep `Install-ProfilesMod-0.9.3.ps1` and `ProfilesMod-0.9.3.zip` together and run from their folder:
 
 ```powershell
-.\Install-ProfilesMod-0.9.2.ps1 -GameDir 'C:\Games\Beat Saber 1.46.0'
+.\Install-ProfilesMod-0.9.3.ps1 -GameDir 'C:\Games\Beat Saber 1.46.0'
 ```
 
 The installer checks the loader and game, refuses to proceed while Beat Saber is running or a target file is locked, copies only the plugin and its two SQLite runtime files, and verifies their SHA-256 hashes. It preserves the database and unrelated plugins. Neither script starts Beat Saber. After installation, the BSIPA log should show Profiles initialization and the Players button; the database is created on first initialization.
@@ -98,4 +98,4 @@ Use `-WhatIf` to build and preview the source hashes without copying files. The 
 .\Deploy-ProfilesMod.ps1 -WhatIf
 ```
 
-For a combined source build and loader preparation from a repository checkout, run `.\initialize-modding.ps1 -GameDir 'C:\Games\Beat Saber 1.46.0'` without `-LoaderOnly`. The manifest and assembly version are 0.9.2; the embedded manifest declares the BSIPA `^4.3.7` dependency.
+For a combined source build and loader preparation from a repository checkout, run `.\initialize-modding.ps1 -GameDir 'C:\Games\Beat Saber 1.46.0'` without `-LoaderOnly`. The manifest and assembly version are 0.9.3; the embedded manifest declares the BSIPA `^4.3.7` dependency.

@@ -22,6 +22,10 @@ namespace ProfilesMod
         private static string _playlistName;
         private static HiddenControls _categoryControls;
         private static HiddenControls _packControls;
+        private static Component _hiddenCategorySelector;
+        private static bool _categorySelectorVisible;
+        private static AnnotatedBeatmapLevelCollectionsGridView _hiddenPackGrid;
+        private static bool _packGridVisible;
 
         private sealed class HiddenControls
         {
@@ -227,29 +231,63 @@ namespace ProfilesMod
                 navigation, typeof(LevelSelectionNavigationController), "_levelFilteringNavigationController");
             var categories = ProfileFlowCoordinator.ReadDependency<SelectLevelCategoryViewController>(
                 filtering, typeof(LevelFilteringNavigationController), "_selectLevelCategoryViewController");
+            var selector = ProfileFlowCoordinator.ReadDependency<Component>(
+                categories, typeof(SelectLevelCategoryViewController), "_levelFilterCategoryIconSegmentedControl");
             var packs = ProfileFlowCoordinator.ReadDependency<AnnotatedBeatmapLevelCollectionsViewController>(
                 filtering, typeof(LevelFilteringNavigationController), "_annotatedBeatmapLevelCollectionsViewController");
-            if (categories == null || packs == null)
+            var grid = ProfileFlowCoordinator.ReadDependency<AnnotatedBeatmapLevelCollectionsGridView>(
+                packs, typeof(AnnotatedBeatmapLevelCollectionsViewController), "_annotatedBeatmapLevelCollectionsGridView");
+            if (categories == null || selector == null || packs == null || grid == null)
                 throw new InvalidOperationException("The native song category or pack controls are unavailable.");
             _categoryControls = new HiddenControls(categories.gameObject);
             try
             {
                 _packControls = new HiddenControls(packs.gameObject);
+                _hiddenCategorySelector = selector;
+                _categorySelectorVisible = selector.gameObject.activeSelf;
+                selector.gameObject.SetActive(false);
+                _hiddenPackGrid = grid;
+                _packGridVisible = grid.gameObject.activeSelf;
+                grid.gameObject.SetActive(false);
             }
             catch
             {
                 _categoryControls.Restore();
                 _categoryControls = null;
+                _packControls?.Restore();
+                _packControls = null;
+                if (_hiddenCategorySelector != null)
+                    _hiddenCategorySelector.gameObject.SetActive(_categorySelectorVisible);
+                _hiddenCategorySelector = null;
+                _hiddenPackGrid = null;
                 throw;
             }
         }
 
         private static void RestoreCategoryControls()
         {
+            var grid = _hiddenPackGrid;
+            var visible = _packGridVisible;
+            var selector = _hiddenCategorySelector;
+            var selectorVisible = _categorySelectorVisible;
+            _hiddenPackGrid = null;
+            _hiddenCategorySelector = null;
             _categoryControls?.Restore();
             _packControls?.Restore();
             _categoryControls = null;
             _packControls = null;
+            if (selector != null)
+                selector.gameObject.SetActive(selectorVisible);
+            if (grid != null)
+                grid.gameObject.SetActive(visible);
+        }
+
+        internal static bool SetPackGridVisibility(AnnotatedBeatmapLevelCollectionsGridView grid, bool visible)
+        {
+            if (_hiddenPackGrid == null || grid != _hiddenPackGrid)
+                return true;
+            _packGridVisible = visible;
+            return false;
         }
 
         internal static void ShowPanel(SoloFreePlayFlowCoordinator solo, in BeatmapKey key)
@@ -267,6 +305,24 @@ namespace ProfilesMod
         {
             if (_view != null)
                 _view.SetPlaylistError(message);
+        }
+    }
+
+    [HarmonyPatch(typeof(AnnotatedBeatmapLevelCollectionsGridView), nameof(AnnotatedBeatmapLevelCollectionsGridView.Show))]
+    internal static class ProfilePackGridShowPatch
+    {
+        private static bool Prefix(AnnotatedBeatmapLevelCollectionsGridView __instance)
+        {
+            return ProfileSoloSession.SetPackGridVisibility(__instance, true);
+        }
+    }
+
+    [HarmonyPatch(typeof(AnnotatedBeatmapLevelCollectionsGridView), nameof(AnnotatedBeatmapLevelCollectionsGridView.Hide))]
+    internal static class ProfilePackGridHidePatch
+    {
+        private static bool Prefix(AnnotatedBeatmapLevelCollectionsGridView __instance)
+        {
+            return ProfileSoloSession.SetPackGridVisibility(__instance, false);
         }
     }
 
