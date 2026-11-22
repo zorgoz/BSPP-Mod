@@ -22,11 +22,17 @@ The three PNGs in `Resources` are embedded in `ProfilesMod.dll` and used at runt
 
 ## Player profiles
 
+![Players button in the main menu](main-menu-button.PNG)
+
 Open `Players` from the main menu to create or select a player. The selected name is highlighted; `Play` saves that selection and continues through the game's Solo flow. Players can be deleted only when they have no recorded runs. The player list scrolls when it contains more entries than fit on screen.
+
+![Player selection dialog](player-profile-selection-dialog.PNG)
 
 Each row shows the number of recorded runs and their maximum `points`, or `new player` when there are no runs. Both cleared and uncleared recorded runs are counted.
 
 In profile Solo, the right screen shows the player and their playlists. Use `+` to create a playlist and its edit control to rename or delete it; deletion requires confirmation. Select a playlist title to show its songs from the full available library, regardless of the current stock pack or filter; select it again to restore the stock song list. The selection resets when leaving Solo, but remains active through gameplay and temporary subviews. The heart toggles the selected song in that playlist independently of other playlists. Playlists are per player, and hearts require a selected song. Normal Solo retains its stock leaderboard and filtering.
+
+![Player playlists and song statistics](player-board.PNG)
 
 The profile statistics use the run with the highest `score` for the selected song (ties use the lowest run ID); the statistics are gray if the player has no cleared run for that song. An index on `(player_id, song_id, score DESC, id)` supports this lookup.
 
