@@ -1,6 +1,6 @@
 # Profiles
 
-Profiles 0.9.1 is a BSIPA plugin for Beat Saber 1.46.0. It adds a `Players` button to the main menu and creates a mod-owned SQLite database, `ProfilesMod.sqlite3`, alongside the Beat Saber game instance. Initialization creates the schema and performs a write probe before making the database available; if that fails, the Players button is disabled, the cause is written to the BSIPA log, and (when the game exposes `HMUI.HoverHint`) the cause appears on hover.
+Profiles 0.9.2 is a BSIPA plugin for Beat Saber 1.46.0. It adds a `Players` button to the main menu and creates a mod-owned SQLite database, `ProfilesMod.sqlite3`, alongside the Beat Saber game instance. Initialization creates the schema and performs a write probe before making the database available; if that fails, the Players button is disabled, the cause is written to the BSIPA log, and (when the game exposes `HMUI.HoverHint`) the cause appears on hover.
 
 ## Disclaimer and development
 
@@ -30,7 +30,7 @@ Open `Players` from the main menu to create or select a player. The selected nam
 
 Each row shows the number of recorded runs and their maximum `points`, or `new player` when there are no runs. Both cleared and uncleared recorded runs are counted.
 
-In profile Solo, the main title identifies the player, and the right screen shows their playlists. Use `+` to create a playlist and its edit control to rename or delete it; deletion requires confirmation. Select a playlist title to show its songs from the full available library, regardless of the current stock pack or filter; the title identifies the playlist and the category buttons are hidden. Select it again to restore the stock song list and category buttons. The selection resets when leaving Solo, but remains active through gameplay and temporary subviews. The heart toggles the selected song in that playlist independently of other playlists. Playlists are per player, and hearts require a selected song. Normal Solo retains its stock leaderboard and filtering.
+In profile Solo, the main title identifies the player, and the right screen shows their playlists. Use `+` to create a playlist and its edit control to rename or delete it; deletion requires confirmation. Select a playlist title to show its songs from the full available library, regardless of the current stock pack or filter; the title identifies the playlist and the category buttons and pack selector are hidden. Select it again to restore the stock song list and controls. The selection resets when leaving Solo, but remains active through gameplay and temporary subviews. The heart toggles the selected song in that playlist independently of other playlists. Playlists are per player, and hearts require a selected song. Normal Solo retains its stock leaderboard and filtering.
 
 ![Player playlists and song statistics](player-board.PNG)
 
@@ -73,10 +73,10 @@ The initializer checks the game version and mod-loader installation, installs th
 .\initialize-modding.ps1 -GameDir 'C:\Games\Beat Saber 1.46.0' -LoaderOnly
 ```
 
-To install 0.9.1 without the repository, download the release assets. On an unprepared instance, first keep `initialize-modding.ps1` and `Select-GameDirectory.ps1` together and run the initialization command above with `-LoaderOnly`. Then keep `Install-ProfilesMod-0.9.1.ps1` and `ProfilesMod-0.9.1.zip` together and run from their folder:
+To install 0.9.2 without the repository, download the release assets. On an unprepared instance, first keep `initialize-modding.ps1` and `Select-GameDirectory.ps1` together and run the initialization command above with `-LoaderOnly`. Then keep `Install-ProfilesMod-0.9.2.ps1` and `ProfilesMod-0.9.2.zip` together and run from their folder:
 
 ```powershell
-.\Install-ProfilesMod-0.9.1.ps1 -GameDir 'C:\Games\Beat Saber 1.46.0'
+.\Install-ProfilesMod-0.9.2.ps1 -GameDir 'C:\Games\Beat Saber 1.46.0'
 ```
 
 The installer checks the loader and game, refuses to proceed while Beat Saber is running or a target file is locked, copies only the plugin and its two SQLite runtime files, and verifies their SHA-256 hashes. It preserves the database and unrelated plugins. Neither script starts Beat Saber. After installation, the BSIPA log should show Profiles initialization and the Players button; the database is created on first initialization.
@@ -98,4 +98,4 @@ Use `-WhatIf` to build and preview the source hashes without copying files. The 
 .\Deploy-ProfilesMod.ps1 -WhatIf
 ```
 
-For a combined source build and loader preparation from a repository checkout, run `.\initialize-modding.ps1 -GameDir 'C:\Games\Beat Saber 1.46.0'` without `-LoaderOnly`. The manifest and assembly version are 0.9.1; the embedded manifest declares the BSIPA `^4.3.7` dependency.
+For a combined source build and loader preparation from a repository checkout, run `.\initialize-modding.ps1 -GameDir 'C:\Games\Beat Saber 1.46.0'` without `-LoaderOnly`. The manifest and assembly version are 0.9.2; the embedded manifest declares the BSIPA `^4.3.7` dependency.
